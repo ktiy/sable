@@ -42,6 +42,8 @@ pub const Kind = enum(u8) {
     // dyad
     peek,
     reshape,
+    replicate,
+
     eq,
     neq,
     lt,
@@ -186,6 +188,7 @@ pub const Lexer = struct {
                 '▽' => t.kind = lex.atom(.order_down),
                 '□' => t.kind = lex.atom(.peek),
                 'Ρ' => t.kind = lex.atom(.reshape),
+                '/' => t.kind = lex.atom(.replicate),
                 '+' => t.kind = lex.atom(.add),
                 '-' => t.kind = lex.atom(.sub),
                 '×' => t.kind = lex.atom(.mul),
