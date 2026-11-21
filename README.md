@@ -1,8 +1,8 @@
 <img align="left" width="72" src="https://codeberg.org/kitty/gsable/raw/commit/dadd226e3ad178a71966e22b0b9ada161b8dce2d/assets/icon.png">
 
-# gsable
+# sable
 
-Interpreter and graphical environment for the **sable** programming language. Work in progress!
+**sable** is a [concatenative][3] programming language with dynamic types and [arrays][4] like [APL][5]. Work in progress!!
 
 ## Installation
 
@@ -14,12 +14,9 @@ Ensure the following dependencies are installed on your machine:
 Then, build the project from source.
 
 ```sh
-# clone and cd into the repo
-git clone https://codeberg.org/kitty/gsable
-cd gsable
-
-# build the project
-zig build install --prefix=~/.local --release=fast
+$ git clone https://codeberg.org/kitty/sable
+$ cd sable
+$ zig build install --prefix=~/.local --release=fast
 ```
 
 ## Usage
@@ -36,10 +33,6 @@ usage: sbl [options] [input-file...]
    --verbose-bc       Dumps the compiled bytecode to stderr.
 ```
 
-## Documentation
-
-**sable** is a concatenative programming language. It is stack-based like [forth][3], with dynamic types and [arrays][4] like [APL][5].
-
 ## Interpreter Limitations
 
 - Source files must be UTF-8 encoded, and cannot be greater than 4.2GB in size
@@ -52,6 +45,6 @@ This project is licensed under AGPLv3. For details, see the [LICENSE](LICENSE) f
 
 [1]: https://ziglang.org
 [2]: https://wiki.libsdl.org/SDL3/FrontPage
-[3]: https://en.wikipedia.org/wiki/Forth_(programming_language)
+[3]: https://en.wikipedia.org/wiki/Concatenative_programming_language
 [4]: https://aplwiki.com/wiki/Array
-[5]: https://en.wikipedia.org/wiki/APL_(nu.org/licenses/agpl-3.0.txtprogramming_language)
+[5]: https://aplwiki.com/wiki/APL
