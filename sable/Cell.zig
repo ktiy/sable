@@ -192,11 +192,29 @@ pub fn format(self: Cell, w: *std.Io.Writer) !void {
         },
         .array => {
             const arr = self.into(.array);
+            if (arr.ty() == .char and arr.ra() == 1)
+                return fmt_string(w, arr);
             var iter = arr.iter();
             try fmt_dims(w, &iter, arr.shape()[0..arr.ra()]);
         },
         .none => try w.print("(none)", .{}),
     }
+}
+
+fn fmt_string(
+    w: *std.Io.Writer,
+    arr: sbl.Array,
+) !void {
+    try w.writeByte('"');
+    for (arr.char_slice()) |cp| switch (cp) {
+        0 => try w.writeAll("\\0"),
+        '\n' => try w.writeAll("\\n"),
+        '\r' => try w.writeAll("\\r"),
+        '\t' => try w.writeAll("\\t"),
+        '\"' => try w.writeAll("\\\""),
+        else => try w.print("{u}", .{@as(u21, @intCast(cp))}),
+    };
+    try w.writeByte('"');
 }
 
 // TODO: nicer array formatting
