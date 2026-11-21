@@ -8,6 +8,7 @@ dat_p: Dat_P = 0,
 ret_p: Ret_P = 0,
 e: sbl.RuntimeError = .none,
 mem: std.AutoHashMapUnmanaged(Symbol, Cell) = .empty,
+args: sbl.Cell = .none(),
 
 pub fn init(gpa: std.mem.Allocator, io: std.Io, p: sbl.bc.Program) Machine {
     return .{
@@ -23,6 +24,31 @@ pub fn deinit(m: *Machine) void {
         ent.value_ptr.release(m.gpa);
     }
     m.mem.deinit(m.gpa);
+}
+
+pub fn set_args(m: *Machine, av: []const []const u8) !void {
+    m.args.release(m.gpa);
+
+    const args = try sbl.Array.init(m.gpa, &.{@intCast(av.len)}, .any);
+    for (args.any_slice(), av) |*res, arg| {
+        const view = try std.unicode.Utf8View.init(arg);
+        var iter = view.iterator();
+
+        var chars: std.ArrayList(u32) = .empty;
+        defer chars.deinit(m.gpa);
+
+        while (iter.nextCodepoint()) |cp| {
+            try chars.append(m.gpa, cp);
+        }
+
+        const len: i64 = @intCast(chars.items.len);
+        const ret = try sbl.Array.init(m.gpa, &.{len}, .char);
+        @memcpy(ret.char_slice(), chars.items);
+
+        res.* = .array(ret);
+    }
+
+    m.args = .array(args);
 }
 
 pub fn throw(m: *Machine, e: sbl.RuntimeError.Kind) void {

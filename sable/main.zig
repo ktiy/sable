@@ -20,7 +20,7 @@ pub const bc = @import("bc.zig");
 pub const builtins = @import("builtins.zig");
 pub const primitives = @import("primitives.zig");
 
-pub const max_open_files = 256;
+pub const max_script_args = 256;
 
 const usage: []const u8 =
     \\usage: sbl [options] [input-file...]
@@ -55,15 +55,19 @@ pub fn main(init: std.process.Init.Minimal) !void {
     const args = try init.args.toSlice(arena);
 
     var repl: bool = false;
-    var files_buf: [max_open_files]SourceFile = undefined;
-    var files: std.ArrayList(SourceFile) = .initBuffer(&files_buf);
-
+    var file: ?SourceFile = null;
+    var sa_buf: [max_script_args][]const u8 = undefined;
+    var sa: std.ArrayList([]const u8) = .initBuffer(&sa_buf);
     var debug_ast: bool = false;
     var debug_bc: bool = false;
 
     for (args[1..]) |arg| {
         if (!std.mem.startsWith(u8, arg, "-")) {
-            try files.appendBounded(.{ .path = arg });
+            if (file == null) {
+                file = .{ .path = arg };
+            } else {
+                try sa.appendBounded(arg);
+            }
         } else if (eq(arg, "-h") or eq(arg, "--help")) {
             try stdout.print("{s}", .{usage});
             try stdout.flush();
@@ -93,14 +97,14 @@ pub fn main(init: std.process.Init.Minimal) !void {
         std.process.exit(1);
     }
 
-    if (files.items.len == 0 and !repl) {
+    if (file == null and !repl) {
         try stderr.print("sable: no input files provided\n", .{});
         try stderr.print("{s}", .{usage});
         try stderr.flush();
         std.process.exit(1);
     }
 
-    for (files.items) |*src| {
+    if (file) |*src| {
         std.log.debug("reading {s}", .{src.path});
         try src.read(io, gpa);
 
@@ -170,6 +174,10 @@ pub fn main(init: std.process.Init.Minimal) !void {
         var m = Machine.init(gpa, io, prog);
         defer m.deinit();
 
+        if (sa.items.len > 0) {
+            try m.set_args(sa.items);
+        }
+
         while (m.step()) {}
 
         if (m.e.kind != .none) {
@@ -189,7 +197,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
         std.process.exit(0);
     }
-    defer for (files.items) |src| {
+    defer if (file) |src| {
         gpa.free(src.content);
     };
 }

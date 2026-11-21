@@ -2,6 +2,7 @@ pub const Builtin = enum {
     echo,
     print,
     putc,
+    av,
     w,
     frc,
     frb,
@@ -12,6 +13,7 @@ pub const map = std.StaticStringMap(Builtin).initComptime(&.{
     .{ "echo", .echo },
     .{ "print", .print },
     .{ "putc", .putc },
+    .{ "av", .av },
     .{ "w", .w },
     .{ "frc", .frc },
     .{ "frb", .frb },
@@ -23,6 +25,7 @@ pub fn stack_effect(b: Builtin) Stack_Effect {
         .echo => .init(1, 1),
         .print => .init(1, 0),
         .putc => .init(1, 0),
+        .av => .init(0, 1),
         .w => .init(1, 0),
         .frc => .init(1, 1),
         .frb => .init(1, 1),
@@ -35,6 +38,7 @@ pub fn run(m: M, b: Builtin) void {
         .echo => echo(m),
         .print => print(m),
         .putc => putc(m),
+        .av => av(m),
         .w => w(m),
         .frc => frc(m),
         .frb => frb(m),
@@ -57,6 +61,12 @@ fn putc(m: M) void {
     if (x.k != .char) return m.throw(.type);
     const u: u21 = @truncate(x.into(.char));
     std.debug.print("{u}", .{u});
+}
+
+fn av(m: M) void {
+    const x = m.args;
+    x.retain();
+    m.push(x);
 }
 
 fn w(m: M) void {
