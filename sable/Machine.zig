@@ -45,7 +45,7 @@ pub fn step(m: *Machine) bool {
         },
         .call_arr => |idx| {
             const x = m.prog.arrays[idx];
-            x.retain();
+            std.debug.assert(x.refc() == 1);
             m.push(.array(x));
         },
         .call_sym => |sym| {
