@@ -44,8 +44,10 @@ fn apply(comptime Op: type, m: MachinePtr, a: Cell, x: Cell) Cell {
 }
 
 fn apply_e(comptime Op: type, m: MachinePtr, a: Cell, x: Cell) E!Cell {
-    if (a.empty() or x.empty())
+    if (a.empty() or x.empty()) {
+        x.release(m.gpa);
         return a;
+    }
 
     if (a.atom() and x.atom())
         return apply_aa(Op, m, a, x);
@@ -134,12 +136,12 @@ fn apply_het(
         const lt = if (p.lt) |l| l.get(i / p.rep) else atom;
         const av, const xv = if (p.a_is_gt) .{ gt, lt } else .{ lt, gt };
 
-        retain(av);
-        retain(xv);
+        av.retain();
+        xv.retain();
 
         elem.* = apply_e(Op, m, av, xv) catch |e| {
-            release(m, av);
-            release(m, xv);
+            av.release(m.gpa);
+            xv.release(m.gpa);
             return e;
         };
     }
@@ -226,18 +228,6 @@ fn kind_elem(x: Cell) Cell.Kind {
 inline fn lift(comptime t: Cell.Kind, comptime u: Cell.Kind, x: t.Into()) u.Into() {
     if (comptime t == u) return x;
     return from(t, x).coerce(u);
-}
-
-fn retain(x: Cell) void {
-    if (x.is_array()) {
-        x.into(.array).retain();
-    }
-}
-
-fn release(m: MachinePtr, x: Cell) void {
-    if (x.is_array()) {
-        x.into(.array).release(m.gpa);
-    }
 }
 
 inline fn from(comptime k: Cell.Kind, x: k.Into()) Cell {

@@ -20,8 +20,7 @@ pub fn init(gpa: std.mem.Allocator, io: std.Io, p: sbl.bc.Program) Machine {
 pub fn deinit(m: *Machine) void {
     var it = m.mem.iterator();
     while (it.next()) |ent| {
-        const val = ent.value_ptr;
-        if (!val.atom()) val.into(.array).release(m.gpa);
+        ent.value_ptr.release(m.gpa);
     }
     m.mem.deinit(m.gpa);
 }
@@ -46,6 +45,7 @@ pub fn step(m: *Machine) bool {
         .call_arr => |idx| {
             const x = m.prog.arrays[idx];
             std.debug.assert(x.refc() == 1);
+            x.retain();
             m.push(.array(x));
         },
         .call_sym => |sym| {
@@ -71,10 +71,13 @@ pub fn step(m: *Machine) bool {
             return m.e.kind == .none;
         },
         .pop_into_sym => |sym| {
-            m.mem.put(m.gpa, sym, m.pop()) catch {
+            const val = m.pop();
+            const old = m.mem.fetchPut(m.gpa, sym, val) catch {
+                val.release(m.gpa);
                 m.throw(.oom);
                 return false;
             };
+            if (old) |kv| kv.value.release(m.gpa);
         },
         .pop_into_arr => |num| {
             const arr = sbl.Array.init(m.gpa, &.{@intCast(num)}, .any) catch {

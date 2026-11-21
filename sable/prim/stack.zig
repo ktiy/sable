@@ -3,13 +3,13 @@ const sbl = @import("sbl");
 
 pub fn dup(m: *sbl.Machine) void {
     const x = m.top().*;
-    if (x.is_array()) x.into(.array).retain();
+    x.retain();
     m.push(x);
 }
 
 pub fn drop(m: *sbl.Machine) void {
     const x = m.pop();
-    if (x.is_array()) x.into(.array).release(m.gpa);
+    x.release(m.gpa);
 }
 
 pub fn swap(m: *sbl.Machine) void {
@@ -28,7 +28,7 @@ pub fn over(m: *sbl.Machine) void {
     const dat_p = @as(usize, @intCast(m.dat_p));
     const x = m.dat[dat_p - 2];
 
-    if (x.is_array()) x.into(.array).retain();
+    x.retain();
     m.push(x);
 }
 

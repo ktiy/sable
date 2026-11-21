@@ -160,6 +160,14 @@ pub fn compare(x: Cell, y: Cell) std.math.Order {
     };
 }
 
+pub fn retain(x: Cell) void {
+    if (x.is_array()) x.into(.array).retain();
+}
+
+pub fn release(x: Cell, gpa: std.mem.Allocator) void {
+    if (x.is_array()) x.into(.array).release(gpa);
+}
+
 fn compare_num(x: f64, y: f64) std.math.Order {
     const x_nan = std.math.isNan(x);
     const y_nan = std.math.isNan(y);

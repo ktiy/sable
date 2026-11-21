@@ -1,5 +1,3 @@
-const CompileError = @This();
-
 kind: Kind,
 pos: SourceFile.Span,
 
@@ -53,5 +51,6 @@ pub fn report(
     if (slice.len > 0) try w.print("  {s}\n", .{slice});
 }
 
+const CompileError = @This();
 const SourceFile = @import("SourceFile.zig");
 const std = @import("std");

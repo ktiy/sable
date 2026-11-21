@@ -12,6 +12,7 @@ pub fn run(m: *sbl.Machine) void {
     const sh = xs.shape();
     const ra = xs.header.rank;
     var arr = sbl.Array.init(m.gpa, &.{ra}, .any) catch {
+        xs.release(m.gpa);
         return m.throw(.oom);
     };
 
@@ -28,7 +29,10 @@ pub fn re(m: *sbl.Machine) void {
     const x = m.pop();
     const a = m.pop();
 
+    defer x.release(m.gpa);
     if (a.empty()) return m.push(a);
+
+    defer a.release(m.gpa);
     if (x.empty()) return m.throw(.rank);
 
     if (x.atom()) {
@@ -84,9 +88,6 @@ pub fn re(m: *sbl.Machine) void {
     }
 
     m.push(.array(arr));
-
-    xs.release(m.gpa);
-    if (!a.atom()) a.into(.array).release(m.gpa);
 }
 
 fn get_wrap(x: sbl.Cell, i: usize) sbl.Cell {
@@ -95,5 +96,7 @@ fn get_wrap(x: sbl.Cell, i: usize) sbl.Cell {
     const arr = x.into(.array);
     const idx = i % arr.header.len;
 
-    return arr.get(idx);
+    const y = arr.get(idx);
+    y.retain();
+    return y;
 }

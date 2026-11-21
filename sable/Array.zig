@@ -133,6 +133,14 @@ pub fn shrink(self: Array, gpa: std.mem.Allocator, len: usize) !Array {
     assert(h.rank == 1);
     assert(len <= h.len);
 
+    // Release extra items in array
+    if (self.ty() == .any) {
+        for (self.any_slice()[len..]) |*x| {
+            x.release(gpa);
+            x.* = .num(0);
+        }
+    }
+
     const old_z = total_size(h.kind, h.rank, h.len);
     const new_z = total_size(h.kind, h.rank, len);
     const old_buf: [*]align(8) u8 = @ptrCast(h);
@@ -154,11 +162,9 @@ pub fn retain(self: Array) void {
 
 pub fn release(self: Array, gpa: std.mem.Allocator) void {
     if (@atomicRmw(u16, &self.header.refc, .Sub, 1, .seq_cst) == 1) {
-        if (self.is_any()) {
-            for (self.any_slice()) |x| {
-                if (!x.atom()) x.into(.array).release(gpa);
-            }
-        }
+        if (self.is_any()) for (self.any_slice()) |x| {
+            x.release(gpa);
+        };
         self.deinit(gpa);
     }
 }

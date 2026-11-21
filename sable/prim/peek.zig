@@ -17,7 +17,7 @@ fn run_e(m: *sbl.Machine) !void {
     const a = m.top();
 
     if (x.empty()) {
-        if (!a.atom()) a.into(.array).release(m.gpa);
+        a.release(m.gpa);
         a.* = x;
         return;
     }
@@ -30,7 +30,12 @@ fn run_e(m: *sbl.Machine) !void {
             // TODO: avoiding temporary allocation here?
             var start: []usize = try m.gpa.alloc(usize, sh.len);
             defer m.gpa.free(start);
+            @memset(start, 0);
+
             start[0] = x.coerce(.char);
+            if (start[0] >= @as(usize, @intCast(sh[0])))
+                return m.throw(.bounds);
+
             const start_idx = as.flat_index(start[0..sh.len]);
 
             var end: []usize = try m.gpa.alloc(usize, sh.len);
@@ -43,12 +48,13 @@ fn run_e(m: *sbl.Machine) !void {
 
             for (res.any_slice(), 0..) |*elem, i| {
                 elem.* = as.get(start_idx + i);
+                elem.retain();
             }
 
             _ = end_idx;
 
-            as.release(m.gpa);
             a.* = .array(res);
+            as.release(m.gpa);
 
             return;
         }
@@ -56,9 +62,11 @@ fn run_e(m: *sbl.Machine) !void {
         const i = x.coerce(.char);
         if (i >= as.length()) return m.throw(.bounds);
 
-        a.* = as.get(i);
-        as.release(m.gpa);
+        const elem = as.get(i);
+        elem.retain();
+        a.* = elem;
 
+        as.release(m.gpa);
         return;
     }
 
