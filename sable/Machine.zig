@@ -9,6 +9,7 @@ ret_p: Ret_P = 0,
 e: sbl.RuntimeError = .none,
 mem: std.AutoHashMapUnmanaged(Symbol, Cell) = .empty,
 args: sbl.Cell = .none(),
+stdout: ?*std.Io.Writer = null,
 
 pub fn init(gpa: std.mem.Allocator, io: std.Io, p: sbl.bc.Program) Machine {
     return .{
@@ -24,6 +25,18 @@ pub fn deinit(m: *Machine) void {
         ent.value_ptr.release(m.gpa);
     }
     m.mem.deinit(m.gpa);
+}
+
+pub fn print(m: *Machine, comptime fmt: []const u8, args: anytype) void {
+    if (m.stdout) |w| {
+        w.print(fmt, args) catch return m.throw(.oom);
+        return;
+    }
+
+    switch (builtin.os.tag) {
+        .freestanding => {},
+        else => std.debug.print(fmt, args),
+    }
 }
 
 pub fn set_args(m: *Machine, av: []const []const u8) !void {
@@ -70,7 +83,6 @@ pub fn step(m: *Machine) bool {
         },
         .call_arr => |idx| {
             const x = m.prog.arrays[idx];
-            std.debug.assert(x.refc() == 1);
             x.retain();
             m.push(.array(x));
         },
@@ -180,6 +192,7 @@ const ret_stack_size = 256;
 const Dat_P = std.math.IntFittingRange(-1, dat_stack_size);
 const Ret_P = std.math.IntFittingRange(-1, ret_stack_size);
 
+const builtin = @import("builtin");
 const std = @import("std");
 const sbl = @import("sbl");
 const Cell = sbl.Cell;

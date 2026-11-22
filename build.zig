@@ -3,6 +3,11 @@ const manifest = @import("build.zig.zon");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
+    const wasm_target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+    });
+
     const optimize = b.standardOptimizeOption(.{
         .preferred_optimize_mode = .ReleaseSmall,
     });
@@ -26,14 +31,40 @@ pub fn build(b: *std.Build) void {
         .{ .name = "known_folders", .module = known_folders.module("known-folders") },
     };
 
-    const sable = build_exe(b, "sbl", "sable/main.zig", target, optimize, options, &imports);
+    const sable = build_exe(b, "sbl", "sable/main.zig", target, optimize, options, &.{});
     const gui = build_exe(b, "gsable", "gui/main.zig", target, optimize, options, &imports);
+
+    const sbl_wasm = b.createModule(.{
+        .root_source_file = b.path("sable/main.zig"),
+        .target = wasm_target,
+        .optimize = .ReleaseSmall,
+    });
+    sbl_wasm.addImport("build_options", options.createModule());
+    sbl_wasm.addImport("sbl", sbl_wasm);
+
+    const wasm = b.addExecutable(.{
+        .name = "sbl",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("sable/wasm.zig"),
+            .target = wasm_target,
+            .optimize = .ReleaseSmall,
+            .imports = &.{.{ .name = "sbl", .module = sbl_wasm }},
+        }),
+    });
+    wasm.entry = .disabled;
+    wasm.rdynamic = true;
 
     const sable_mod_tests = b.addTest(.{ .root_module = sable });
     const gui_mod_tests = b.addTest(.{ .root_module = gui });
 
     const run_sable_mod_tests = b.addRunArtifact(sable_mod_tests);
     const run_gui_mod_tests = b.addRunArtifact(gui_mod_tests);
+
+    const web_step = b.step("web", "Build wasm");
+    web_step.dependOn(&b.addInstallFileWithDir(wasm.getEmittedBin(), .prefix, "www/sbl.wasm").step);
+    web_step.dependOn(&b.addInstallFileWithDir(b.path("web/index.html"), .prefix, "www/index.html").step);
+    web_step.dependOn(&b.addInstallFileWithDir(b.path("web/worker.js"), .prefix, "www/worker.js").step);
+    web_step.dependOn(&b.addInstallFileWithDir(b.path("assets/fairfax-hd/FairfaxHD.ttf"), .prefix, "www/FairfaxHD.ttf").step);
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_sable_mod_tests.step);

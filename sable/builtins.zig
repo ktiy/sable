@@ -40,27 +40,31 @@ pub fn run(m: M, b: Builtin) void {
         .putc => putc(m),
         .av => av(m),
         .w => w(m),
-        .frc => frc(m),
-        .frb => frb(m),
+        .frc => if (builtin.os.tag == .freestanding) nyi(m) else frc(m),
+        .frb => if (builtin.os.tag == .freestanding) nyi(m) else frb(m),
         .debug_array => debug_array(m),
     };
 }
 
+fn nyi(m: M) void {
+    m.throw(.nyi);
+}
+
 fn echo(m: M) void {
     const x = m.top();
-    std.debug.print("{f}\n", .{x.*});
+    m.print("{f}\n", .{x.*});
 }
 
 fn print(m: M) void {
     const x = m.pop();
-    std.debug.print("{f}", .{x});
+    m.print("{f}", .{x});
 }
 
 fn putc(m: M) void {
     const x = m.pop();
     if (x.k != .char) return m.throw(.type);
     const u: u21 = @truncate(x.into(.char));
-    std.debug.print("{u}", .{u});
+    m.print("{u}", .{u});
 }
 
 fn av(m: M) void {
@@ -78,16 +82,10 @@ fn w(m: M) void {
 
     if (arr.ty() != .char) return m.throw(.type);
 
-    const stdout: std.Io.File = .stdout();
-    var stdout_buf: [1024]u8 = undefined;
-    var stdout_writer = stdout.writer(m.io, &stdout_buf);
-    const writer = &stdout_writer.interface;
     for (arr.char_slice()) |cp| {
         const c: u21 = @intCast(cp);
-        writer.print("{u}", .{c}) catch return m.throw(.os);
+        m.print("{u}", .{c});
     }
-
-    writer.flush() catch return m.throw(.os);
 }
 
 fn frc(m: M) void {
@@ -143,7 +141,7 @@ fn debug_array(m: M) void {
     const x = m.top().*;
     if (x.atom()) return m.throw(.type);
     const arr = x.into(.array);
-    std.debug.print("type: {s}\nrefc: {d}\n", .{ @tagName(arr.ty()), arr.refc() });
+    m.print("type: {s}\nrefc: {d}\n", .{ @tagName(arr.ty()), arr.refc() });
 }
 
 fn file_open_path_u32(m: M, path_u32: []const u32) ![]const u8 {
@@ -163,5 +161,6 @@ fn file_open_path_u32(m: M, path_u32: []const u32) ![]const u8 {
 const M = *sbl.Machine;
 const Stack_Effect = sbl.bc.StackEffect;
 
+const builtin = @import("builtin");
 const std = @import("std");
 const sbl = @import("sbl");

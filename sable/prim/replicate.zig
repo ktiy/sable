@@ -14,14 +14,16 @@ pub fn run(m: *sbl.Machine) void {
 
     if (x.atom()) {
         if (!x.is_num()) return m.throw(.type);
-        const n: u64 = @trunc(x.into(.num));
+        const n: usize = @trunc(x.into(.num));
         const len = arr.length() * n;
         const len_dim: i64 = @intCast(len);
 
         var out = sbl.Array.init(m.gpa, &.{len_dim}, .any) catch return m.throw(.oom);
         var out_any = out.any_slice();
         for (0..arr.length()) |i| {
-            @memset(out_any[i * n ..][0..n], arr.get(i));
+            const elem = arr.get(i);
+            @memset(out_any[i * n ..][0..n], elem);
+            for (0..n) |_| elem.release(m.gpa);
         }
 
         const ret = out.downcast(m.gpa) catch return m.throw(.oom);
@@ -38,10 +40,12 @@ pub fn run(m: *sbl.Machine) void {
 
     var out = sbl.Array.init(m.gpa, &.{len}, .any) catch return m.throw(.oom);
     var out_any = out.any_slice();
-    var cnt: u64 = 0;
+    var cnt: usize = 0;
     for (xs.num_slice(), 0..) |num, i| {
-        const n: u64 = @trunc(num);
-        @memset(out_any[cnt..][0..n], arr.get(i));
+        const n: usize = @trunc(num);
+        const elem = arr.get(i);
+        @memset(out_any[cnt..][0..n], elem);
+        for (0..n) |_| elem.release(m.gpa);
         cnt += n;
     }
 

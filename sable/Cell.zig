@@ -26,7 +26,7 @@ pub const Data = extern union {
     num: f64,
     byte: u8,
     char: u32,
-    array: *Array.Header,
+    array: *align(8) Array.Header,
 };
 
 pub fn num(x: f64) Cell {

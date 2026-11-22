@@ -1,4 +1,4 @@
-header: *Header,
+header: *align(8) Header,
 
 pub const Dim = i64;
 
@@ -6,7 +6,7 @@ pub const Header = extern struct {
     kind: Kind = .any,
     rank: u8,
     refc: u16,
-    len: u64,
+    len: usize,
 
     comptime {
         assert(@sizeOf(Header) % 8 == 0);
@@ -34,13 +34,13 @@ pub fn init(
     assert(sh.len <= std.math.maxInt(u8));
 
     const rank: u8 = @truncate(sh.len);
-    var len: u64 = 1;
+    var len: usize = 1;
     for (sh) |dim| len *= @intCast(dim);
 
     const total = total_size(kind, rank, len);
-    const buf = try gpa.alignedAlloc(u8, .fromByteUnits(@alignOf(Header)), total);
+    const buf = try gpa.alignedAlloc(u8, .@"8", total);
 
-    const h: *Header = @ptrCast(buf.ptr);
+    const h: *align(8) Header = @ptrCast(buf.ptr);
     h.kind = kind;
     h.rank = rank;
     h.refc = 1;
@@ -146,7 +146,7 @@ pub fn shrink(self: Array, gpa: std.mem.Allocator, len: usize) !Array {
     const old_buf: [*]align(8) u8 = @ptrCast(h);
     const new = try gpa.realloc(old_buf[0..old_z], new_z);
 
-    const nh: *Header = @ptrCast(new.ptr);
+    const nh: *align(8) Header = @ptrCast(new.ptr);
     nh.len = len;
     nh.payload().shape()[0] = @intCast(len);
     return .{ .header = nh };
@@ -204,7 +204,7 @@ pub fn is_any(self: Array) bool {
     return self.header.kind == .any;
 }
 
-fn total_size(k: Kind, rank: u8, len: u64) usize {
+fn total_size(k: Kind, rank: u8, len: usize) usize {
     const header_size = @sizeOf(Header);
     const shape_size = @as(usize, rank) * @sizeOf(Dim);
     const array_size = k.array_size(len);
@@ -227,7 +227,7 @@ pub fn refc(self: Array) u16 {
     return self.header.refc;
 }
 
-pub fn length(self: Array) u64 {
+pub fn length(self: Array) usize {
     return self.header.len;
 }
 
@@ -259,7 +259,7 @@ pub const Kind = enum(u8) {
         };
     }
 
-    pub fn array_size(self: Kind, len: u64) usize {
+    pub fn array_size(self: Kind, len: usize) usize {
         return switch (self) {
             .any => len * @sizeOf(Cell),
             .num => len * @sizeOf(f64),
@@ -270,7 +270,7 @@ pub const Kind = enum(u8) {
 };
 
 pub const Payload = struct {
-    rank: usize,
+    rank: u8,
     len: usize,
     ptr: [*]u8,
 
