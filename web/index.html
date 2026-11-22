@@ -17,6 +17,7 @@
        --pad: #ffffff;
        --border: #cccccc;
        --accent: #2222ff;
+       --accent-bright: #000088;
        --err: #ff2222;
       }
      * { box-sizing: border-box; }
@@ -34,7 +35,7 @@
      h1 {
        margin: 0 0 .25rem;
      }
-     textarea, pre {
+     textarea, pre, .glyphs {
        width: 100%;
        margin: 0;
        padding: 0.5rem;
@@ -43,6 +44,19 @@
        color: var(--fg);
        font-family: "FairfaxHD", monospace;
        font-size: 18px;
+     }
+     .pending, .pending:focus {
+       border: 1px solid var(--accent-bright);
+     }
+     .glyphs a {
+       text-decoration: none;
+       color: var(--accent);
+       padding: 0.1rem;
+       font-size: 20px;
+     }
+     .glyphs a:hover {
+       color: var(--pad);
+       background: var(--accent);
      }
      textarea {
        min-height: 10rem;
@@ -83,6 +97,7 @@
     <main>
       <h1>sable</h1>
 
+      <div class="glyphs" id="glyphs"></div>
       <textarea id="src" spellcheck="false" autofocus></textarea>
 
       <div class="bar" >
@@ -94,13 +109,88 @@
     </main>
 
     <script>
+     const $ = id => document.getElementById(id);
+
      const MAX_INTERPRETER_STEPS = 4294967295;
      const MAX_TIME_MS = 10000;
 
-     const source = document.getElementById("src");
-     const result = document.getElementById("result");
-     const run_button = document.getElementById("run");
-     const status = document.getElementById("status");
+     const source = $("src");
+     const result = $("result");
+     const run_button = $("run");
+     const status = $("status");
+
+     function insert(g) {
+       source.setRangeText(g, source.selectionStart, source.selectionEnd, 'end');
+       source.dispatchEvent(new Event('input', { bubbles: true }));
+     }
+
+     let glyphs = Array.from("∅.,~⫦⊪+-×÷*|↧↥¬=≠>≥<≤□Ρ/ιρ⧻△▽´¨:`‿⋄←%");
+     let keys   = Array.from("n   oO  +-  mM  = > <pS islrR12 3_;[ ");
+
+     const keymap = Object.fromEntries(
+       keys
+         .map((k,i) => [k, glyphs[i]])
+         .filter(([, g]) => g && g !== ' ')
+     );
+
+     const prefix = '\\';
+     let pending = false;
+     source.addEventListener("keydown", ev => {
+       if (pending) {
+         pending = false;
+         source.classList.remove("pending");
+         if (ev.key === "Escape") {
+           ev.preventDefault();
+           return;
+         }
+         if (ev.key === prefix) {
+           ev.preventDefault();
+           insert(prefix);
+           return;
+         }
+
+         const g = keymap[ev.key];
+         if (g) {
+           ev.preventDefault();
+           insert(g);
+           return;
+         }
+         insert(prefix);
+         return;
+       }
+
+       if (ev.key == prefix
+           && !ev.ctrlKey
+           && !ev.metaKey
+           && !ev.altKey) {
+         ev.preventDefault();
+         pending = true;
+         source.classList.add("pending");
+       }
+
+       if (ev.key === "Enter" && ev.ctrlKey) {
+         ev.preventDefault();
+         run();
+       }
+     });
+     const container = $("glyphs");
+
+     glyphs.forEach(g => {
+       const a = document.createElement('a');
+       a.textContent = g;
+       a.href = '#';
+       a.title = g;
+
+       a.onmousedown = ev => ev.preventDefault();
+
+       a.onclick = ev => {
+         ev.preventDefault();
+         insert(g);
+         source.focus();
+       };
+
+       container.append(a);
+     });
 
      let worker = new Worker("worker.js");
 
