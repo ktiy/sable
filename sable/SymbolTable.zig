@@ -1,6 +1,6 @@
 gpa: std.mem.Allocator,
 buf: std.ArrayList(u8) = .empty,
-strs: std.ArrayList([]const u8) = .empty,
+strs: std.ArrayList(struct { i: u32, j: u32 }) = .empty,
 
 pub const Symbol = enum(u32) {
     none = std.math.maxInt(u32),
@@ -22,23 +22,25 @@ pub fn intern(self: *SymTable, id: []const u8) !Symbol {
     if (id.len == 0) return .none;
 
     for (self.strs.items, 0..) |str, i| {
-        if (std.mem.eql(u8, id, str)) {
+        if (std.mem.eql(u8, id, self.buf.items[str.i..str.j])) {
             return @fromBackingInt(@truncate(i));
         }
     }
 
-    const i = @as(u32, @truncate(self.strs.items.len));
+    const sym = @as(u32, @truncate(self.strs.items.len));
+    const i: u32 = @truncate(self.buf.items.len);
+    const len: u32 = @truncate(id.len);
+
     try self.buf.appendSlice(self.gpa, id);
+    try self.strs.append(self.gpa, .{ .i = i, .j = i + len });
 
-    const slice = self.buf.items[i..][0..id.len];
-    try self.strs.append(self.gpa, slice);
-
-    return @fromBackingInt(i);
+    return @fromBackingInt(sym);
 }
 
 pub fn get(self: *SymTable, sym: Symbol) []const u8 {
     if (sym == .none) return "";
-    return self.strs.items[@backingInt(sym)];
+    const str = self.strs.items[@backingInt(sym)];
+    return self.buf.items[str.i..str.j];
 }
 
 test "symbol table" {
@@ -47,15 +49,25 @@ test "symbol table" {
     var st: SymTable = try .init(gpa);
     defer st.deinit();
 
-    const hello = try st.intern("hello");
-    const hello_str = st.get(hello);
+    const avg = try st.intern("avg");
 
-    const hello2 = try st.intern("hello");
-    const hello2_str = st.get(hello2);
+    const avg_str = st.get(avg);
+    const x = try st.intern("x");
+    const x_str = st.get(x);
 
-    try std.testing.expectEqual(hello, hello2);
-    try std.testing.expectEqualSlices(u8, hello_str, hello2_str);
-    try std.testing.expectEqualSlices(u8, "hello", hello_str);
+    const avg2 = try st.intern("avg");
+    const avg2_str = st.get(avg2);
+
+    const x2 = try st.intern("x");
+    const x2_str = st.get(x2);
+
+    try std.testing.expectEqual(avg, avg2);
+    try std.testing.expectEqualSlices(u8, avg_str, avg2_str);
+    try std.testing.expectEqualSlices(u8, "avg", avg2_str);
+
+    try std.testing.expectEqual(x, x2);
+    try std.testing.expectEqualSlices(u8, x_str, x2_str);
+    try std.testing.expectEqualSlices(u8, "x", x2_str);
 }
 
 const SymTable = @This();
