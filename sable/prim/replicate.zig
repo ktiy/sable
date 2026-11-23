@@ -23,7 +23,7 @@ pub fn run(m: *sbl.Machine) void {
         for (0..arr.length()) |i| {
             const elem = arr.get(i);
             @memset(out_any[i * n ..][0..n], elem);
-            for (0..n) |_| elem.release(m.gpa);
+            for (0..n) |_| elem.retain();
         }
 
         const ret = out.downcast(m.gpa) catch return m.throw(.oom);
@@ -45,7 +45,7 @@ pub fn run(m: *sbl.Machine) void {
         const n: usize = @trunc(num);
         const elem = arr.get(i);
         @memset(out_any[cnt..][0..n], elem);
-        for (0..n) |_| elem.release(m.gpa);
+        for (0..n) |_| elem.retain();
         cnt += n;
     }
 
