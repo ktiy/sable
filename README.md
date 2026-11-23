@@ -6,17 +6,12 @@
 
 ## Installation
 
-Ensure the following dependencies are installed on your machine:
-
-- [zig][1] (v0.17.x)
-- [SDL3][2]
-
-Then, build the project from source.
+Ensure [zig][1] v0.17.x is installed on your machine, then you can build the project from source.
 
 ```sh
 $ git clone https://codeberg.org/kitty/sable
 $ cd sable
-$ zig build install --prefix=~/.local --release=fast
+$ zig build --release=fast
 ```
 
 ## Usage
