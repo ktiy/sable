@@ -212,10 +212,10 @@ pub const Lexer = struct {
                 '≤' => t.kind = lex.atom(.lt_eq),
                 '↧' => t.kind = lex.atom(.min),
                 '↥' => t.kind = lex.atom(.max),
-                '´' => t.kind = lex.atom(.fold),
+                'ˊ' => t.kind = lex.atom(.fold),
                 '¨' => t.kind = lex.atom(.each),
                 ':' => t.kind = lex.atom(.cells),
-                '`' => t.kind = lex.atom(.scan),
+                'ˋ' => t.kind = lex.atom(.scan),
                 else => return Error.unexpected_character,
             },
             .start_backslash => switch (try lex.peek()) {
