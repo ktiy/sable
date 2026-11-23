@@ -13,6 +13,7 @@ pub const Kind = enum {
     nyi,
     oom,
     bounds,
+    domain,
     rank,
     shape,
     type,

@@ -81,7 +81,7 @@ fn apply_homo(
 ) E!Cell {
     const k = comptime ak.promote(xk);
     const out_k = comptime Op.out(k);
-    const out_arr_k = comptime @field(A.Kind, @tagName(k));
+    const out_arr_k = comptime @field(A.Kind, @tagName(out_k));
     const p = try plan(a, x);
 
     const in_place = p.gt.ty() == out_arr_k and p.gt.refc() == 1;
