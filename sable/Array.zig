@@ -108,7 +108,7 @@ pub fn downcast(self: Array, gpa: std.mem.Allocator) !Array {
         .num => .num,
         .byte => .byte,
         .char => .char,
-        else => unreachable,
+        else => .any,
     };
     const out = try Array.init(gpa, self.shape(), out_k);
     switch (k) {
@@ -121,7 +121,7 @@ pub fn downcast(self: Array, gpa: std.mem.Allocator) !Array {
         .char => for (out.char_slice(), cells) |*elem, x| {
             elem.* = x.into(.char);
         },
-        else => unreachable,
+        else => return self,
     }
 
     self.release(gpa);
