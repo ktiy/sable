@@ -26,7 +26,7 @@ pub const Kind = enum(u8) {
 
     // stack
     dup,
-    drop,
+    pop,
     swap,
     over,
     rot,
@@ -41,6 +41,8 @@ pub const Kind = enum(u8) {
 
     // dyad
     peek,
+    take,
+    drop,
     reshape,
     replicate,
     partition,
@@ -179,7 +181,7 @@ pub const Lexer = struct {
                 'λ' => t.kind = lex.atom(.lambda),
                 '∅' => t.kind = lex.atom(.none),
                 '.' => t.kind = lex.atom(.dup),
-                ',' => t.kind = lex.atom(.drop),
+                ',' => t.kind = lex.atom(.pop),
                 '~' => t.kind = lex.atom(.swap),
                 '⫦' => t.kind = lex.atom(.over),
                 '⊪' => t.kind = lex.atom(.rot),
@@ -189,6 +191,8 @@ pub const Lexer = struct {
                 '△' => t.kind = lex.atom(.order_up),
                 '▽' => t.kind = lex.atom(.order_down),
                 '□' => t.kind = lex.atom(.peek),
+                '↑' => t.kind = lex.atom(.take),
+                '↓' => t.kind = lex.atom(.drop),
                 'Ρ' => t.kind = lex.atom(.reshape),
                 '/' => t.kind = lex.atom(.replicate),
                 '⊂' => t.kind = lex.atom(.partition),

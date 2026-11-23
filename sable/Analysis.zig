@@ -216,7 +216,7 @@ fn array(x: *Self, node: Node) E!StackEffect {
 fn primitive_effect(kind: Token.Kind) ?StackEffect {
     return switch (kind) {
         .dup => StackEffect.init(1, 2),
-        .drop => StackEffect.init(1, 0),
+        .pop => StackEffect.init(1, 0),
         .swap => StackEffect.init(2, 2),
         .over => StackEffect.init(2, 3),
         .rot => StackEffect.init(3, 3),
@@ -227,6 +227,8 @@ fn primitive_effect(kind: Token.Kind) ?StackEffect {
         .order_down,
         => StackEffect.monad,
         .peek,
+        .take,
+        .drop,
         .reshape,
         .replicate,
         .partition,

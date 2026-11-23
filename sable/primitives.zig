@@ -14,13 +14,15 @@ pub fn run(t: Token.Kind) *const Prim {
     const nyi = @import("prim/nyi.zig");
     return switch (t) {
         .dup => stack.dup,
-        .drop => stack.drop,
+        .pop => stack.drop,
         .swap => stack.swap,
         .over => stack.over,
         .rot => stack.rot,
         .iota => @import("prim/iota.zig").run,
         .length => @import("prim/length.zig").run,
         .peek => @import("prim/peek.zig").run,
+        .take => @import("prim/take.zig").run,
+        .drop => @import("prim/drop.zig").run,
         .shape => shape.run,
         .reshape => shape.re,
         .replicate => @import("prim/replicate.zig").run,

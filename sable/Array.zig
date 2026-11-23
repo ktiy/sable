@@ -184,6 +184,11 @@ pub fn flat_index(self: Array, is: []const usize) usize {
     return offset;
 }
 
+pub fn slice(self: Array, comptime k: Kind) []k.Type() {
+    assert(self.ty() == k);
+    return self.header.payload().data(k.Type());
+}
+
 pub fn any_slice(self: Array) []Cell {
     return self.header.payload().data(Cell);
 }
