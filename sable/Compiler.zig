@@ -251,9 +251,8 @@ fn node_to_cell(w: *Compiler, comptime k: Node.Kind, n: Node.Index) E!?Cell {
             return Cell.byte(x);
         },
         .char => {
-            const c = u[1..];
-            if (c.len != 1) return w.invalid(t);
-            return Cell.char(c[0]);
+            const cp, _ = decode_str_char(u, 1) orelse return w.invalid(t);
+            return Cell.char(cp);
         },
         .none => {
             return Cell.none();

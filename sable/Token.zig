@@ -108,6 +108,7 @@ pub const Lexer = struct {
             start_backslash,
             newline,
             char_start,
+            char_backslash,
             comment_line,
             symbol,
             number_dec,
@@ -326,9 +327,16 @@ pub const Lexer = struct {
                     continue :state .string_start;
                 },
             },
-            .char_start => {
-                _ = try lex.peek();
-                lex.incr();
+            .char_start => switch (try lex.peek()) {
+                '\\' => {
+                    lex.incr();
+                    continue :state .char_backslash;
+                },
+                else => lex.incr(),
+            },
+            .char_backslash => switch (try lex.peek()) {
+                '\n', '\t', '\r', 0 => {},
+                else => lex.incr(),
             },
         }
 
