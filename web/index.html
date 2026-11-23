@@ -129,6 +129,7 @@
 
      const keymap = Object.fromEntries(
        keys
+         .map((k,i) => k==' '?null:k=='_'?' ':k)
          .map((k,i) => [k, glyphs[i]])
          .filter(([, g]) => g && g !== ' ')
      );
