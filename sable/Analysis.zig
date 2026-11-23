@@ -232,6 +232,7 @@ fn primitive_effect(kind: Token.Kind) ?StackEffect {
         .reshape,
         .replicate,
         .partition,
+        .join,
         .add,
         .sub,
         .mul,

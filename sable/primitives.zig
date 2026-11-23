@@ -27,6 +27,7 @@ pub fn run(t: Token.Kind) *const Prim {
         .reshape => shape.re,
         .replicate => @import("prim/replicate.zig").run,
         .partition => @import("prim/partition.zig").run,
+        .join => @import("prim/join.zig").run,
         .order_up => sort.up,
         .order_down => sort.down,
         .add => arith.add,
