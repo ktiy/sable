@@ -8,9 +8,12 @@ pub fn run(m: *sbl.Machine, f: usize) void {
     // TODO: maybe runtime error instead lol
     std.debug.assert(arr.length() >= 0);
 
-    m.push(arr.get(0));
+    const zero = arr.get(0);
+    zero.retain();
+    m.push(zero);
     for (1..arr.length()) |i| {
-        m.push(arr.get(i));
+        const elem = arr.get(i);
+        m.push(elem);
         if (!m.call(f)) return;
     }
 }
