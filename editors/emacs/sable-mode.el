@@ -12,29 +12,11 @@
   :type 'integer
   :safe #'integerp)
 
+
 (defcustom sable-keymap
-  '((?i . ?ι)
-    (?l . ?⧻)
-    (?m . ?↧)
-    (?M . ?↥)
-    (?n . ?∅)
-    (?o . ?⫦)
-    (?O . ?⊪)
-    (?p . ?□)
-    (?r . ?△)
-    (?R . ?▽)
-    (?s . ?ρ)
-    (?S . ?Ρ)
-    (?+ . ?×)
-    (?- . ?÷)
-    (?= . ?≠)
-    (?< . ?≤)
-    (?> . ?≥)
-    (?1 . ?´)
-    (?2 . ?¨)
-    (?\s . ?‿)
-    (?\; . ?⋄)
-    (?\[ . ?←))
+  (cl-mapcar #'cons
+             "noO+-mM=><pdtSejislrR12 3 ;["
+             "∅⫦⊪×÷↧↥≠≥≤□↓↑Ρ⊂⨝ιρ⧻△▽ˊ¨:ˋ‿⋄←")
   "Sable keymap"
   :type '(alist :key-type character :value-type character))
 
@@ -85,10 +67,10 @@
   (list ?ι ?ρ ?⧻ ?△ ?▽ ?↧ ?↥))
 
 (defconst sable--dyadic-prims
-  (list ?□ ?Ρ ?+ ?- ?× ?÷ ?* ?| ?≠ ?≤ ?≥))
+  (list ?□ ?Ρ ?↓ ?↑ ?⊂ ?⨝ ?+ ?- ?× ?÷ ?* ?| ?≠ ?≤ ?≥))
 
 (defconst sable--modifier-prims
-  (list ?´ ?¨ ?:))
+  (list ?ˊ ?¨ ?: ?ˋ))
 
 (defconst sable--punctuation
   (list ?\; ?⋄ ?‿ ?← ?λ ?#))
