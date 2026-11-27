@@ -82,7 +82,9 @@ fn run(ally: std.mem.Allocator, text: []const u8, max_steps: u32, w: *std.Io.Wri
     }
 
     const n: usize = @intCast(m.dat_p);
-    for (m.dat[0..n]) |c| try w.print("{f}\n", .{c});
+    if (n > 0) {
+        for (m.dat[0..n]) |c| try w.print("{f}\n", .{c});
+    }
     return true;
 }
 
