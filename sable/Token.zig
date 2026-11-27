@@ -12,6 +12,7 @@ pub const Kind = enum(u8) {
     char,
     real,
     string,
+    string_line,
     none,
     lambda,
     array_open,
@@ -122,6 +123,7 @@ pub const Lexer = struct {
             number_exp,
             string_start,
             string_backslash,
+            string_line,
         };
 
         state: switch (State.start) {
@@ -173,6 +175,12 @@ pub const Lexer = struct {
                     lex.incr();
                     t.kind = .string;
                     continue :state .string_start;
+                },
+                '$' => {
+                    t.pos.start = lex.pos;
+                    lex.incr();
+                    t.kind = .string_line;
+                    continue :state .string_line;
                 },
                 '\'' => {
                     lex.incr();
@@ -333,6 +341,13 @@ pub const Lexer = struct {
                 else => {
                     lex.incr();
                     continue :state .string_start;
+                },
+            },
+            .string_line => switch (try lex.peek()) {
+                '\n', 0 => {},
+                else => {
+                    lex.incr();
+                    continue :state .string_line;
                 },
             },
             .char_start => switch (try lex.peek()) {

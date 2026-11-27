@@ -107,6 +107,7 @@ fn resolve(x: *Self, idx: Node.Index) E!StackEffect {
         .byte,
         .char,
         .string,
+        .string_multiline,
         .none,
         => StackEffect.nilad,
         .primitive => try x.primitive(node),

@@ -103,6 +103,7 @@ fn expr(w: *Compiler, n: Node.Index) E!void {
         .byte,
         .char,
         .string,
+        .string_multiline,
         .none,
         => |k| try w.push_const(k, n),
 
@@ -193,6 +194,7 @@ fn is_const(w: *Compiler, comptime k: Node.Kind, n: Node.Index) bool {
         .byte,
         .char,
         .string,
+        .string_multiline,
         .none,
         => true,
         .array => {
@@ -291,6 +293,40 @@ fn node_to_cell(w: *Compiler, comptime k: Node.Kind, n: Node.Index) E!?Cell {
             errdefer arr.release(w.gpa);
             if (count < inner.len) arr = try arr.shrink(w.gpa, count);
             return Cell.array(arr);
+        },
+        .string_multiline => {
+            var chars: std.ArrayList(u32) = .empty;
+            defer chars.deinit(w.gpa);
+
+            const last = w.node(.token_end, n);
+            var first_line = true;
+            var tok = t;
+            while (tok <= last) : (tok += 1) {
+                if (w.kind(tok) != .string_line) continue;
+                if (!first_line) try chars.append(w.gpa, '\n');
+                first_line = false;
+
+                var line = w.str(tok)[1..];
+                if (line.len > 0 and line[0] == ' ')
+                    line = line[1..];
+
+                if (line.len > 0 and line[line.len - 1] == '\r')
+                    line = line[0 .. line.len - 1];
+
+                var i: usize = 0;
+                while (i < line.len) {
+                    const ch, const incr = decode_str_char(line, i) orelse {
+                        return w.invalid(tok);
+                    };
+                    try chars.append(w.gpa, ch);
+                    i += incr;
+                }
+            }
+
+            const len: sbl.Array.Dim = @intCast(chars.items.len);
+            const arr: sbl.Array = try .init(w.gpa, &.{len}, .char);
+            @memcpy(arr.char_slice(), chars.items);
+            return .array(arr);
         },
         else => return null,
     }

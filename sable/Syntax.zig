@@ -43,6 +43,7 @@ pub const Node = struct {
         byte,
         char,
         string,
+        string_multiline,
         none,
         primitive,
         modifier,
@@ -280,12 +281,23 @@ const Parser = struct {
             .char => .init(.char, p.incr()),
             .real => .init(.real, p.incr()),
             .string => .init(.string, p.incr()),
+            .string_line => p.parse_multiline(),
             .none => .init(.none, p.incr()),
             else => if (prim.is_prim(k))
                 .init(.primitive, p.incr())
             else
                 null,
         };
+    }
+
+    fn parse_multiline(p: *Parser) Error!?Node {
+        const first = p.incr();
+        var last = first;
+        while (p.kind() == .newline and p.peek(1) == .string_line) {
+            _ = p.incr();
+            last = p.incr();
+        }
+        return .node(.string_multiline, first, last, undefined, undefined);
     }
 
     fn push_err(p: *Parser, err: CompileError.Kind, pos: Token.Index) !void {
@@ -376,6 +388,12 @@ const report = struct {
                 const loc = pos.line_col(buf);
                 try w.print(" \"{s}\" ({d}:{d})\n", .{ pos.slice(buf), loc.line, loc.column });
             },
+
+            .string_multiline => {
+                const loc = tokens.items(.pos)[node.token].line_col(buf);
+                try w.print(" ({d}:{d})\n", .{ loc.line, loc.column });
+            },
+
             .assign, .modify => {
                 try w.print("\n", .{});
 
