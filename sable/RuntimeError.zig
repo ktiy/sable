@@ -18,6 +18,7 @@ pub const Kind = enum {
     shape,
     type,
     os,
+    unbound,
 };
 
 pub const none = RuntimeError{ .kind = .none };

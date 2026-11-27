@@ -147,9 +147,13 @@ fn eval(o: *Repl, str: [:0]const u8) !void {
         return;
     }
 
+    const cp = o.av.checkpoint();
+    const cv_len = o.cv.items.len;
+
     const sema = try sbl.Analysis.run_env(o.gpa, ast, ts, str, &o.st, &o.av);
     defer sema.deinit(o.gpa);
     if (sema.errors.len > 0) {
+        o.av.restore(cp);
         for (sema.errors) |e| {
             o.r.write_bytes(@tagName(e.kind));
             o.r.write_bytes("\r\n");
@@ -170,13 +174,10 @@ fn eval(o: *Repl, str: [:0]const u8) !void {
         o.arrays.items.len,
     );
 
-    var cenv = try o.cv.clone(o.gpa);
-    defer cenv.deinit(o.gpa);
-
     if (prog.errors.len > 0) {
         prog.deinit(o.gpa);
-        o.cv.clearRetainingCapacity();
-        try o.cv.appendSlice(o.gpa, cenv.items);
+        o.av.restore(cp);
+        o.cv.shrinkRetainingCapacity(cv_len);
         o.r.write_bytes("!compile\r\n");
         return;
     }

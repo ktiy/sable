@@ -4,19 +4,23 @@ ts: Token.Slice,
 buf: []const u8,
 st: *SymTable,
 errors: std.ArrayList(CompileError) = .empty,
+res: []Res,
 /// [idx: Node.Index]
 sigs: []StackEffect,
 /// [idx: Symbol]
 env: *Env,
 
-pub const Env = std.ArrayList(?StackEffect);
+pub const Env = sbl.Scope;
+pub const Res = sbl.Scope.Res;
 
 pub const Result = struct {
     sigs: []StackEffect,
+    res: []Res,
     errors: []CompileError,
 
     pub fn deinit(x: Result, a: std.mem.Allocator) void {
         a.free(x.sigs);
+        a.free(x.res);
         a.free(x.errors);
     }
 };
@@ -50,12 +54,17 @@ pub fn run_env(
     errdefer gpa.free(sigs);
     @memset(sigs, StackEffect.init(0, 0));
 
+    const res = try gpa.alloc(Res, ast.tree.len);
+    errdefer gpa.free(res);
+    @memset(res, .none);
+
     var x: Self = .{
         .gpa = gpa,
         .ast = ast,
         .ts = ts,
         .buf = buf,
         .st = st,
+        .res = res,
         .sigs = sigs,
         .env = env,
     };
@@ -74,6 +83,7 @@ pub fn run_env(
 
     return .{
         .sigs = sigs,
+        .res = res,
         .errors = try x.errors.toOwnedSlice(gpa),
     };
 }
@@ -101,12 +111,11 @@ fn resolve(x: *Self, idx: Node.Index) E!StackEffect {
         => StackEffect.nilad,
         .primitive => try x.primitive(node),
         .builtin => try x.builtin(node),
-        .symbol => try x.use_symbol(node),
-        .assign => try x.assign(node),
+        .symbol => try x.use_symbol(idx, node),
+        .assign => try x.assign(idx, node),
         .modify => try x.modify(node),
-        .scope,
-        .sequence,
-        => try x.compose(node.lhs, node.rhs),
+        .scope => try x.scope(idx, node),
+        .sequence => try x.compose(node.lhs, node.rhs),
         .array => try x.array(node),
         .modifier => unreachable,
     };
@@ -125,6 +134,13 @@ fn builtin(x: *Self, node: Node) E!StackEffect {
     return StackEffect.nilad;
 }
 
+fn scope(x: *Self, idx: Node.Index, node: Node) E!StackEffect {
+    try x.env.push(x.gpa);
+    const eff = try x.compose(node.lhs, node.rhs);
+    x.res[idx] = x.env.pop();
+    return eff;
+}
+
 fn compose(x: *Self, start: u32, end: u32) E!StackEffect {
     var acc = StackEffect.init(0, 0);
     for (x.ast.extra[start..end]) |child| {
@@ -141,26 +157,40 @@ fn primitive(x: *Self, node: Node) E!StackEffect {
     };
 }
 
-fn use_symbol(x: *Self, node: Node) E!StackEffect {
+fn use_symbol(x: *Self, idx: Node.Index, node: Node) E!StackEffect {
     const sym = try x.intern(node.token);
-    if (x.lookup(sym)) |e| return e;
+    if (x.env.lookup(sym)) |b| {
+        x.res[idx] = b.res;
+        return b.eff;
+    }
 
     try x.err(.unbound_symbol, node.token);
     return StackEffect.nilad;
 }
 
 /// lhs: symbol node, rhs: expression node
-fn assign(x: *Self, node: Node) E!StackEffect {
+fn assign(x: *Self, idx: Node.Index, node: Node) E!StackEffect {
     const eff = try x.resolve(node.rhs);
     const sym = try x.intern(x.ast.tree.items(.token)[node.lhs]);
     std.debug.assert(sym != .none);
 
-    if (classify(eff) != .none) {
-        try x.bind(sym, eff);
-    } else {
-        try x.err(.invalid_binding, node.token);
-        try x.bind(sym, StackEffect.nilad);
+    switch (classify(eff)) {
+        .value => {
+            const r: Res = .{ .slot = x.env.alloc_slot() };
+            try x.env.bind(x.gpa, sym, eff, r);
+            x.res[idx] = r;
+        },
+        .function => {
+            const r: Res = .{ .func = x.env.alloc_func() };
+            try x.env.bind(x.gpa, sym, eff, r);
+            x.res[idx] = r;
+        },
+        .none => {
+            try x.err(.invalid_binding, node.token);
+            try x.env.bind(x.gpa, sym, StackEffect.nilad, .none);
+        },
     }
+
     return StackEffect.init(0, 0);
 }
 

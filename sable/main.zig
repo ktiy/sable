@@ -12,6 +12,7 @@ pub const Machine = @import("Machine.zig");
 pub const Readline = @import("Readline.zig");
 pub const Repl = @import("Repl.zig");
 pub const RuntimeError = @import("RuntimeError.zig");
+pub const Scope = @import("Scope.zig");
 pub const SourceFile = @import("SourceFile.zig");
 pub const SymTable = @import("SymbolTable.zig");
 pub const Syntax = @import("Syntax.zig");

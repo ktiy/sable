@@ -7,7 +7,7 @@ ip: usize = 0,
 dat_p: Dat_P = 0,
 ret_p: Ret_P = 0,
 e: sbl.RuntimeError = .none,
-mem: std.AutoHashMapUnmanaged(Symbol, Cell) = .empty,
+mem: std.ArrayList(?Cell) = .empty,
 args: sbl.Cell = .none(),
 stdout: ?*std.Io.Writer = null,
 
@@ -20,11 +20,34 @@ pub fn init(gpa: std.mem.Allocator, io: std.Io, p: sbl.bc.Program) Machine {
 }
 
 pub fn deinit(m: *Machine) void {
-    var it = m.mem.iterator();
-    while (it.next()) |ent| {
-        ent.value_ptr.release(m.gpa);
+    m.unwind();
+    for (m.mem.items) |slot| {
+        if (slot) |s| s.release(m.gpa);
     }
     m.mem.deinit(m.gpa);
+}
+
+pub fn unwind(m: *Machine) void {
+    while (m.dat_p > 0) m.pop().release(m.gpa);
+    m.ret_p = 0;
+}
+
+pub fn get_slot(m: *Machine, i: u32) ?Cell {
+    const maybe = if (i < m.mem.items.len) m.mem.items[i] else null;
+    if (maybe) |x| {
+        x.retain();
+        m.push(x);
+    }
+    m.throw(.unbound);
+    return null;
+}
+
+pub fn slot_ptr(m: *Machine, i: u32) !*?Cell {
+    const len = m.mem.items.len;
+    if (i >= len) {
+        try m.mem.appendNTimes(m.gpa, null, i + 1 - len);
+    }
+    return &m.mem.items[i];
 }
 
 pub fn print(m: *Machine, comptime fmt: []const u8, args: anytype) void {
@@ -86,10 +109,15 @@ pub fn step(m: *Machine) bool {
             x.retain();
             m.push(.array(x));
         },
-        .call_sym => |sym| {
-            const x = m.mem.get(sym).?;
-            if (!x.atom()) x.into(.array).retain();
-            m.push(x);
+        .call_sym => |i| {
+            const maybe = if (i < m.mem.items.len) m.mem.items[i] else null;
+            if (maybe) |x| {
+                x.retain();
+                m.push(x);
+                return true;
+            }
+            m.throw(.unbound);
+            return false;
         },
         .call_prim => |tok| {
             const prim = sbl.primitives.run(tok);
@@ -108,14 +136,15 @@ pub fn step(m: *Machine) bool {
             mod(m, lam);
             return m.e.kind == .none;
         },
-        .pop_into_sym => |sym| {
+        .pop_into_sym => |i| {
             const val = m.pop();
-            const old = m.mem.fetchPut(m.gpa, sym, val) catch {
+            const slot = m.slot_ptr(i) catch {
                 val.release(m.gpa);
                 m.throw(.oom);
                 return false;
             };
-            if (old) |kv| kv.value.release(m.gpa);
+            if (slot.*) |old| old.release(m.gpa);
+            slot.* = val;
         },
         .pop_into_arr => |num| {
             const arr = sbl.Array.init(m.gpa, &.{@intCast(num)}, .any) catch {
@@ -129,6 +158,15 @@ pub fn step(m: *Machine) bool {
             }
 
             m.push(.array(arr));
+        },
+        .clear_syms => |c| {
+            const i, const j = .{ c.i, c.j };
+            const end = @min(j, m.mem.items.len);
+
+            for (m.mem.items[i..end]) |*slot| {
+                if (slot.*) |x| x.release(m.gpa);
+                slot.* = null;
+            }
         },
         .ret => {
             if (m.ret_p <= 0) {

@@ -23,12 +23,13 @@ pub const Inst = union(enum) {
     call_builtin: sbl.builtins.Builtin,
     call_val: Cell,
     call_arr: usize,
-    call_sym: Symbol,
+    call_sym: u32,
     call_prim: Token.Kind,
     call_lam: usize,
     call_lam_mod: struct { lam: u32, mod: Token.Kind },
-    pop_into_sym: Symbol,
+    pop_into_sym: u32,
     pop_into_arr: u32,
+    clear_syms: struct { i: u32, j: u32 },
     ret,
 
     pub fn format(self: Inst, w: *std.Io.Writer) !void {
@@ -42,6 +43,7 @@ pub const Inst = union(enum) {
             .call_lam_mod => |x| try w.print("CALL {} (func #{x})", .{ x.mod, x.lam }),
             .pop_into_sym => |x| try w.print("-> (sym #{x})", .{x}),
             .pop_into_arr => |x| try w.print("[{d} ->]", .{x}),
+            .clear_syms => |x| try w.print("CLEAR (#{x}..#{x})", .{ x.i, x.j }),
             .ret => try w.print("RETURN", .{}),
         }
     }

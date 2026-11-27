@@ -4,7 +4,7 @@ buf: []const u8,
 ast: sbl.Syntax,
 ts: sbl.Token.Slice,
 st: *sbl.SymTable,
-sigs: []const StackEffect,
+res: []const sbl.Analysis.Res,
 env: *Env,
 
 lam_base: usize,
@@ -16,7 +16,7 @@ errs: std.ArrayList(sbl.CompileError) = .empty,
 
 code: Code = .{},
 
-pub const Env = std.ArrayList(?Def);
+pub const Env = std.ArrayList(?usize);
 
 pub const Code = struct {
     bc: std.ArrayList(Inst) = .empty,
@@ -26,11 +26,6 @@ pub const Code = struct {
         self.bc.deinit(gpa);
         self.loc.deinit(gpa);
     }
-};
-
-pub const Def = struct {
-    kind: sbl.Analysis.Binding,
-    lam: usize,
 };
 
 pub const Error = std.mem.Allocator.Error;
@@ -53,7 +48,7 @@ pub fn run(
         .ts = ts,
         .buf = buf,
         .st = st,
-        .sigs = sema.sigs,
+        .res = sema.res,
         .env = env,
         .lam_base = lam_base,
         .arr_base = arr_base,
@@ -130,37 +125,21 @@ fn expr(w: *Compiler, n: Node.Index) E!void {
             try w.emit(.{ .call_prim = w.kind(t) }, n);
         },
 
-        .symbol => {
-            const t = w.node(.token, n);
-            const sym = try w.st.intern(w.str(t));
-            const def = w.lookup(sym) orelse {
-                try w.fail(.unbound_symbol, n);
-                return;
-            };
-            switch (def.kind) {
-                .value => try w.emit(.{ .call_sym = sym }, n),
-                .function => try w.emit(.{ .call_lam = def.lam }, n),
-                .none => unreachable,
-            }
+        .symbol => switch (w.res[n]) {
+            .slot => |i| try w.emit(.{ .call_sym = i }, n),
+            .func => |i| try w.emit(.{ .call_lam = w.env.items[i].? }, n),
+            .none, .scope => unreachable,
         },
 
         .assign => {
-            const lhs = w.node(.lhs, n);
             const rhs = w.node(.rhs, n);
-            const lhs_tok = w.node(.token, lhs);
-            const sym = try w.intern(w.str(lhs_tok));
-            switch (sbl.Analysis.classify(w.sigs[rhs])) {
-                .value => {
+            switch (w.res[n]) {
+                .slot => |i| {
                     try w.expr(rhs);
-                    try w.emit(.{ .pop_into_sym = sym }, rhs);
-                    try w.bind(sym, .{ .kind = .value, .lam = 0 });
+                    try w.emit(.{ .pop_into_sym = i }, rhs);
                 },
-                .function => {
-                    const lam = try w.lambda(rhs);
-                    // TODO: runtime value ?
-                    try w.bind(sym, .{ .kind = .function, .lam = lam });
-                },
-                .none => unreachable,
+                .func => |i| try w.bind(i, try w.lambda(rhs)),
+                .none, .scope => unreachable,
             }
         },
 
@@ -181,9 +160,20 @@ fn expr(w: *Compiler, n: Node.Index) E!void {
             } }, lhs);
         },
 
-        .scope,
-        .sequence,
-        => {
+        .scope => {
+            const lhs = w.node(.lhs, n);
+            const rhs = w.node(.rhs, n);
+            for (w.ast.extra[lhs..rhs]) |m| try w.expr(m);
+
+            switch (w.res[n]) {
+                .scope => |s| if (s.i > 0) {
+                    try w.emit(.{ .clear_syms = .{ .i = s.i, .j = s.j } }, n);
+                },
+                else => unreachable,
+            }
+        },
+
+        .sequence => {
             const lhs = w.node(.lhs, n);
             const rhs = w.node(.rhs, n);
             for (w.ast.extra[lhs..rhs]) |m| try w.expr(m);
@@ -380,22 +370,11 @@ fn node(w: *Compiler, comptime k: @EnumLiteral(), n: Node.Index) @TypeOf(w.ast.t
     return w.ast.tree.items(k)[n];
 }
 
-fn intern(w: *Compiler, s: []const u8) E!Symbol {
-    return w.st.intern(s);
-}
-
-fn lookup(w: *Compiler, s: Symbol) ?Def {
-    const i: usize = @backingInt(s);
-    if (i >= w.env.items.len) return null;
-    return w.env.items[i];
-}
-
-fn bind(w: *Compiler, s: Symbol, d: Def) E!void {
-    std.debug.assert(s != .none);
-    const i: usize = @backingInt(s);
-    if (i >= w.env.items.len)
-        try w.env.appendNTimes(w.gpa, null, i + 1 - w.env.items.len);
-    w.env.items[i] = d;
+fn bind(w: *Compiler, id: u32, lam: usize) E!void {
+    const len = w.env.items.len;
+    if (id >= len)
+        try w.env.appendNTimes(w.gpa, null, id + 1 - len);
+    w.env.items[id] = lam;
 }
 
 fn lambda(w: *Compiler, body: Node.Index) E!usize {
