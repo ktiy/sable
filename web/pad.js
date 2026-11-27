@@ -13,7 +13,7 @@ function insert(g) {
   source.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-let glyphs = Array.from("∅.,~⫦⊪+-×÷*|↧↥¬=≠>≥<≤□↓↑Ρ/⊂⨝ιρ⧻△▽ˊ¨:ˋ‿⋄←%");
+let glyphs = Array.from("∅.,~⫦⊪+-×÷*|↧↥¬=≠>≥<≤□↓↑Ρ/⊂⌢ιρ⧻△▽ˊ¨:ˋ‿⋄←%");
 let keys   = Array.from("n   oO  +-  mM  = > <pdtS ejislrR12 3_;[ ");
 
 const keymap = Object.fromEntries(

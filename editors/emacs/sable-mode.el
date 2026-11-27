@@ -16,7 +16,7 @@
 (defcustom sable-keymap
   (cl-mapcar #'cons
              "noO+-mM=><pdtSejislrR12 3 ;["
-             "∅⫦⊪×÷↧↥≠≥≤□↓↑Ρ⊂⨝ιρ⧻△▽ˊ¨:ˋ‿⋄←")
+             "∅⫦⊪×÷↧↥≠≥≤□↓↑Ρ⊂⌢ιρ⧻△▽ˊ¨:ˋ‿⋄←")
   "Sable keymap"
   :type '(alist :key-type character :value-type character))
 
