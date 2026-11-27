@@ -181,7 +181,9 @@ fn expr(w: *Compiler, n: Node.Index) E!void {
             } }, lhs);
         },
 
-        .sequence => {
+        .scope,
+        .sequence,
+        => {
             const lhs = w.node(.lhs, n);
             const rhs = w.node(.rhs, n);
             for (w.ast.extra[lhs..rhs]) |m| try w.expr(m);

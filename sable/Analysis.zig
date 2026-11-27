@@ -104,7 +104,9 @@ fn resolve(x: *Self, idx: Node.Index) E!StackEffect {
         .symbol => try x.use_symbol(node),
         .assign => try x.assign(node),
         .modify => try x.modify(node),
-        .sequence => try x.compose(node.lhs, node.rhs),
+        .scope,
+        .sequence,
+        => try x.compose(node.lhs, node.rhs),
         .array => try x.array(node),
         .modifier => unreachable,
     };

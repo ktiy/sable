@@ -55,6 +55,7 @@ pub const Node = struct {
 
         // lhs: extra start, rhs: extra end
         array,
+        scope,
         sequence,
     };
 
@@ -253,10 +254,10 @@ const Parser = struct {
         const body = try p.parse_stmt_list(.brace_close);
         if (p.kind() != .brace_close) {
             try p.push_err(.expected_brace_close, p.pos);
-            return .node(.sequence, open, undefined, body.lhs, body.rhs);
+            return .node(.scope, open, undefined, body.lhs, body.rhs);
         }
         const close = p.incr();
-        return .node(.sequence, open, close, body.lhs, body.rhs);
+        return .node(.scope, open, close, body.lhs, body.rhs);
     }
 
     fn parse_array(p: *Parser) Error!?Node {
@@ -383,7 +384,7 @@ const report = struct {
                 try write_node(w, ast, tokens, buf, node.lhs, child_prefix, false, false);
                 try write_node(w, ast, tokens, buf, node.rhs, child_prefix, true, false);
             },
-            .array, .sequence => {
+            .array, .scope, .sequence => {
                 const children = ast.extra[node.lhs..node.rhs];
                 try w.print(" [{d}]\n", .{children.len});
                 var prefix_buf: [512]u8 = undefined;
