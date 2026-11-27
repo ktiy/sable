@@ -13,12 +13,12 @@ function insert(g) {
   source.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-let glyphs = Array.from("∅.,~⫦⊪+-×÷*|↧↥¬=≠>≥<≤□↓↑Ρ/⊂⌢ιρ⧻△▽ˊ¨:ˋ‿⋄←%");
-let keys   = Array.from("n   oO  +-  mM  = > <pdtS ejislrR12 3_;[ ");
+let glyphs = Array.from("∅∘.,~⫦⊪+-×÷*|↧↥¬=≠>≥<≤□↓↑Ρ/⊂⌢ιρ⧻△▽ˊ¨:ˋ‿⋄←%");
+let keys   = Array.from("nc   oO  +-  mM  = > <pdtS ejislrR12 3_;[ ")
+  .map((k,i) => k==' '?null:k=='_'?' ':k);
 
 const keymap = Object.fromEntries(
   keys
-    .map((k,i) => k==' '?null:k=='_'?' ':k)
     .map((k,i) => [k, glyphs[i]])
     .filter(([, g]) => g)
 );
@@ -65,11 +65,14 @@ source.addEventListener("keydown", ev => {
 });
 const container = $("glyphs");
 
-glyphs.forEach(g => {
+glyphs.forEach((g, i) => {
   const a = document.createElement('a');
   a.textContent = g;
   a.href = '#';
-  a.title = g;
+
+  let key = keys[i];
+  let k = key ? '\n\\'+key : '';
+  a.title = g + k;
 
   a.onmousedown = ev => ev.preventDefault();
 
