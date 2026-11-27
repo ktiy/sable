@@ -7,6 +7,7 @@ pub const Builtin = enum {
     frc,
     frb,
     debug_array,
+    q,
 };
 
 pub const map = std.StaticStringMap(Builtin).initComptime(&.{
@@ -18,6 +19,7 @@ pub const map = std.StaticStringMap(Builtin).initComptime(&.{
     .{ "frc", .frc },
     .{ "frb", .frb },
     .{ "debug_array", .debug_array },
+    .{ "q", .q },
 });
 
 pub fn stack_effect(b: Builtin) Stack_Effect {
@@ -30,6 +32,7 @@ pub fn stack_effect(b: Builtin) Stack_Effect {
         .frc => .init(1, 1),
         .frb => .init(1, 1),
         .debug_array => .init(1, 1),
+        .q => .init(0, 0),
     };
 }
 
@@ -43,6 +46,7 @@ pub fn run(m: M, b: Builtin) void {
         .frc => if (builtin.os.tag == .freestanding) nyi(m) else frc(m),
         .frb => if (builtin.os.tag == .freestanding) nyi(m) else frb(m),
         .debug_array => debug_array(m),
+        .q => q(m),
     };
 }
 
@@ -142,6 +146,15 @@ fn debug_array(m: M) void {
     if (x.atom()) return m.throw(.type);
     const arr = x.into(.array);
     m.print("type: {s}\nrefc: {d}\n", .{ @tagName(arr.ty()), arr.refc() });
+}
+
+fn q(m: M) void {
+    if (builtin.os.tag == .freestanding) {
+        return m.throw(.os);
+    } else {
+        m.deinit();
+        std.process.exit(1);
+    }
 }
 
 fn file_open_path_u32(m: M, path_u32: []const u32) ![]const u8 {
