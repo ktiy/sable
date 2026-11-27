@@ -25,6 +25,7 @@ pub const Kind = enum(u8) {
     strand,
 
     // stack
+    id,
     dup,
     pop,
     swap,
@@ -181,6 +182,7 @@ pub const Lexer = struct {
                 ';', '⋄' => t.kind = lex.atom(.semicolon),
                 'λ' => t.kind = lex.atom(.lambda),
                 '∅' => t.kind = lex.atom(.none),
+                '∘' => t.kind = lex.atom(.id),
                 '.' => t.kind = lex.atom(.dup),
                 ',' => t.kind = lex.atom(.pop),
                 '~' => t.kind = lex.atom(.swap),

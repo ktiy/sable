@@ -247,6 +247,7 @@ fn array(x: *Self, node: Node) E!StackEffect {
 
 fn primitive_effect(kind: Token.Kind) ?StackEffect {
     return switch (kind) {
+        .id => StackEffect.init(1, 1),
         .dup => StackEffect.init(1, 2),
         .pop => StackEffect.init(1, 0),
         .swap => StackEffect.init(2, 2),

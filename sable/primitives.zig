@@ -13,6 +13,7 @@ pub fn run(t: Token.Kind) *const Prim {
     const stack = @import("prim/stack.zig");
     const nyi = @import("prim/nyi.zig");
     return switch (t) {
+        .id => stack.id,
         .dup => stack.dup,
         .pop => stack.drop,
         .swap => stack.swap,
@@ -60,7 +61,7 @@ pub fn mod(t: Token.Kind) *const Mod {
 }
 
 pub fn is_prim(k: Token.Kind) bool {
-    const i: u8 = @backingInt(Token.Kind.dup);
+    const i: u8 = @backingInt(Token.Kind.id);
     const j: u8 = @backingInt(Token.Kind.max);
     const x: u8 = @backingInt(k);
     return x >= i and x <= j;

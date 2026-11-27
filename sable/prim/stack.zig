@@ -1,6 +1,10 @@
 const std = @import("std");
 const sbl = @import("sbl");
 
+pub fn id(m: *sbl.Machine) void {
+    _ = m;
+}
+
 pub fn dup(m: *sbl.Machine) void {
     const x = m.top().*;
     x.retain();
