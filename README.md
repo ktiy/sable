@@ -28,15 +28,9 @@ usage: sbl [options] [input-file...]
    --verbose-bc       Dumps the compiled bytecode to stderr.
 ```
 
-## Interpreter Limitations
-
-- Source files must be UTF-8 encoded, and cannot be greater than 4.2GB in size
-- The interpreter cannot open more than 256 files at once
-- Tokens may not be larger than 512 bytes
-
 ## License
 
-This project is licensed under AGPLv3. For details, see the [LICENSE](LICENSE) file included in this repository.
+sable is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. For details, see the [LICENSE](LICENSE) file included in this repository.
 
 [1]: https://ziglang.org
 [2]: https://wiki.libsdl.org/SDL3/FrontPage
