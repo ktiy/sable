@@ -1,3 +1,13 @@
+pub fn prim1(comptime Op: type) Prim {
+    return struct {
+        pub fn run(m: MachinePtr) void {
+            const x = m.pop();
+            const y = apply1(Op, m, x);
+            m.push(y);
+        }
+    }.run;
+}
+
 pub fn prim2(comptime Op: type) Prim {
     return struct {
         pub fn run(m: MachinePtr) void {
@@ -7,6 +17,22 @@ pub fn prim2(comptime Op: type) Prim {
             m.push(y);
         }
     }.run;
+}
+
+pub fn arith1(comptime F: type) Prim {
+    return prim1(struct {
+        pub fn out(comptime k: Cell.Kind) Cell.Kind {
+            return k;
+        }
+        pub inline fn call(m: MachinePtr, comptime k: Cell.Kind, x: k.Into()) k.Into() {
+            return switch (k) {
+                .num => F.f(m, x),
+                .byte => F.b(m, x),
+                .char => F.c(m, x),
+                else => unreachable,
+            };
+        }
+    });
 }
 
 pub fn arith(comptime F: type) Prim {
@@ -36,10 +62,27 @@ pub fn cmp(comptime F: type) Prim {
     });
 }
 
+fn apply1(comptime Op: type, m: MachinePtr, x: Cell) Cell {
+    return apply1_e(Op, m, x) catch {
+        m.throw(.oom);
+        return x;
+    };
+}
+
 fn apply(comptime Op: type, m: MachinePtr, a: Cell, x: Cell) Cell {
     return apply_e(Op, m, a, x) catch {
         m.throw(.oom);
         return a;
+    };
+}
+
+fn apply1_e(comptime Op: type, m: MachinePtr, x: Cell) E!Cell {
+    if (x.empty()) return x;
+    if (x.atom()) return apply1_a(Op, m, x);
+
+    return switch (kind_elem(x)) {
+        inline .num, .byte, .char => |k| apply1_homo(Op, m, x, k),
+        else => apply1_het(Op, m, x),
     };
 }
 
@@ -61,6 +104,16 @@ fn apply_e(comptime Op: type, m: MachinePtr, a: Cell, x: Cell) E!Cell {
     };
 }
 
+fn apply1_a(comptime Op: type, m: MachinePtr, x: Cell) Cell {
+    return switch (x.k) {
+        inline .num, .byte, .char => |k| from(
+            Op.out(k),
+            Op.call(m, k, x.coerce(k)),
+        ),
+        else => unreachable,
+    };
+}
+
 fn apply_aa(comptime Op: type, m: MachinePtr, a: Cell, x: Cell) Cell {
     return switch (a.promote(x)) {
         inline .num, .byte, .char => |k| from(
@@ -69,6 +122,49 @@ fn apply_aa(comptime Op: type, m: MachinePtr, a: Cell, x: Cell) Cell {
         ),
         else => unreachable,
     };
+}
+
+fn apply1_homo(
+    comptime Op: type,
+    m: MachinePtr,
+    x: Cell,
+    comptime k: Cell.Kind,
+) E!Cell {
+    const out_k = comptime Op.out(k);
+    const out_arr_k = comptime @field(A.Kind, @tagName(out_k));
+    const arr = x.into(.array);
+
+    const in_place = arr.ty() == out_arr_k and arr.refc() == 1;
+    const out = if (in_place) arr else try A.init(m.gpa, arr.shape(), out_arr_k);
+
+    const xs = slice(k, arr);
+    const out_s = slice(out_k, out);
+    for (out_s, xs) |*o, v| o.* = Op.call(m, k, v);
+
+    if (!in_place) arr.release(m.gpa);
+    return .array(out);
+}
+
+fn apply1_het(
+    comptime Op: type,
+    m: MachinePtr,
+    x: Cell,
+) E!Cell {
+    const arr = x.into(.array);
+    const out = try A.init(m.gpa, arr.shape(), .any);
+    errdefer out.release(m.gpa);
+
+    for (out.any_slice(), 0..) |*elem, i| {
+        const v = arr.get(i);
+        v.retain();
+        elem.* = apply1_e(Op, m, v) catch |e| {
+            v.release(m.gpa);
+            return e;
+        };
+    }
+
+    arr.release(m.gpa);
+    return .array(try out.downcast(m.gpa));
 }
 
 fn apply_homo(
@@ -104,19 +200,6 @@ fn apply_homo(
     if (!in_place) p.gt.release(m.gpa);
     if (p.lt) |lt| lt.release(m.gpa);
     return .array(out);
-}
-
-fn slice(comptime k: Cell.Kind, arr: A) []k.Into() {
-    return arr.payload().data(k.Into());
-}
-
-fn elems(comptime k: Cell.Kind, x: Cell, buf: *[1]k.Into()) []const k.Into() {
-    if (x.is_array()) {
-        return slice(k, x.into(.array));
-    } else {
-        buf[0] = x.into(k);
-        return buf;
-    }
 }
 
 fn apply_het(
@@ -237,6 +320,19 @@ inline fn from(comptime k: Cell.Kind, x: k.Into()) Cell {
         .char => .char(x),
         else => unreachable,
     };
+}
+
+fn slice(comptime k: Cell.Kind, arr: A) []k.Into() {
+    return arr.payload().data(k.Into());
+}
+
+fn elems(comptime k: Cell.Kind, x: Cell, buf: *[1]k.Into()) []const k.Into() {
+    if (x.is_array()) {
+        return slice(k, x.into(.array));
+    } else {
+        buf[0] = x.into(k);
+        return buf;
+    }
 }
 
 const std = @import("std");

@@ -257,6 +257,7 @@ fn primitive_effect(kind: Token.Kind) ?StackEffect {
         .length,
         .order_up,
         .order_down,
+        .not,
         => StackEffect.monad,
         .peek,
         .take,

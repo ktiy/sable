@@ -30,6 +30,7 @@ pub fn run(t: Token.Kind) *const Prim {
         .join => @import("prim/join.zig").run,
         .order_up => sort.up,
         .order_down => sort.down,
+        .not => boolean.not,
         .add => arith.add,
         .sub => arith.sub,
         .mul => arith.mul,
