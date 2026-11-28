@@ -212,11 +212,7 @@ fn expr(w: *Compiler, n: Node.Index) E!void {
         },
 
         .builtin => {
-            const txt = w.str(w.node(.token, n));
-            const i = std.unicode.utf8ByteSequenceLength(txt[0]) catch {
-                unreachable;
-            };
-            const buf = txt[i..];
+            const buf = w.str(w.node(.token, n));
             const builtin = sbl.builtins.map.get(buf) orelse unreachable;
             try w.emit(.{ .call_builtin = builtin }, n);
         },

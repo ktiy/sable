@@ -174,12 +174,14 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
         var m = Machine.init(gpa, io, prog);
         defer m.deinit();
+        m.stdout = stdout;
 
         if (sa.items.len > 0) {
             try m.set_args(sa.items);
         }
 
         while (m.step()) {}
+        try stdout.flush();
 
         if (m.e.kind != .none) {
             try m.e.report(stderr, src.content);

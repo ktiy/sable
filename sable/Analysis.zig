@@ -127,11 +127,7 @@ fn resolve(x: *Self, idx: Node.Index) E!StackEffect {
 
 fn builtin(x: *Self, node: Node) E!StackEffect {
     const pos = x.ts.items(.pos)[node.token];
-    const i = pos.start;
-    const j = std.unicode.utf8ByteSequenceLength(x.buf[i]) catch {
-        unreachable;
-    };
-    const str = x.buf[i + j .. pos.end];
+    const str = x.buf[pos.start..pos.end];
     // TODO: we can resolve the builtin before
     if (sbl.builtins.map.get(str)) |b| {
         return sbl.builtins.stack_effect(b);
