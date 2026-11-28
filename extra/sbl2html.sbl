@@ -1,0 +1,24 @@
+usage ← "Usage: sbl2html [file.sbl]"
+arg ← ⎕av {⧻1≠?usage@w@q⋄∘}
+str ← arg 0□ @frc
+
+s ← "code"‿"string"‿"comment"‿"char"
+t ← [
+  0‿1‿2‿3‿4‿0 % 0: start
+  1‿0‿1‿1‿4‿6 % 1: string
+  2‿2‿2‿2‿4‿2 % 2: comment
+  0‿0‿0‿0‿4‿5 % 3: char
+  0‿1‿2‿3‿4‿0 % 4: newline
+  0‿0‿0‿0‿4‿0 % 5: char backslash
+  1‿1‿1‿1‿4‿1 % 6: string backslash
+]
+lex ← {"\"%'\n\\" .⊪=~⧻ι1+ ×+ˊ}¨ 0~⌢ (~t~□~□)ˋ .6=2×⫦4=3×+~3↧~- .0 1-↓~1↓↥
+htm ← ""‿"&lt;"‿"&gt;"‿"&amp;"
+esc ← .'<= ⫦'>=2×+ ⫦'&=3×+ .0=⊪∅⌢~/~htm~□⌢
+
+mask ← str lex
+tag ← mask~□ s~□ "</span><span class=\"sbl_"~⌢"\">"⌢
+emit ← ..tag~mask.0~⌢0 1-↓≠~□/""⌢@w str~□ esc@w
+
+"<style>.sbl_string,.sbl_char{color:#392}.sbl_comment{color:#aaa}</style>"@w
+"<pre><span class=\"sbl_code\">"@w str⧻ιemit¨ "</span></pre>"@w
