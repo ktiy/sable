@@ -245,7 +245,7 @@ pub const Lexer = struct {
                 '↥' => t.kind = lex.atom(.max),
                 'ˊ' => t.kind = lex.atom(.fold),
                 '¨' => t.kind = lex.atom(.each),
-                ':' => t.kind = lex.atom(.cells),
+                '⍤' => t.kind = lex.atom(.cells),
                 'ˋ' => t.kind = lex.atom(.scan),
                 else => return Error.unexpected_character,
             },

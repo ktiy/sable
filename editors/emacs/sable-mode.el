@@ -15,8 +15,8 @@
 
 (defcustom sable-keymap
   (cl-mapcar #'cons
-             "ncoO+-mM=><pdtSejislrR12 3 ;["
-             "∅∘⫦⊪×÷↧↥≠≥≤□↓↑Ρ⊂⌢ιρ⧻△▽ˊ¨:ˋ‿⋄←")
+             "ncoO+-mM=><pdtSejislrR1234 ;["
+             "∅∘⫦⊪×÷↧↥≠≥≤□↓↑Ρ⊂⌢ιρ⧻△▽ˊ¨⍤ˋ‿⋄←")
   "Sable keymap"
   :type '(alist :key-type character :value-type character))
 
