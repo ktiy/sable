@@ -15,8 +15,8 @@
 
 (defcustom sable-keymap
   (cl-mapcar #'cons
-             "ncoO+-mM=><pdtSejislrR1234 ;["
-             "∅∘⫦⊪×÷↧↥≠≥≤□↓↑Ρ⊂⌢ιρ⧻△▽ˊ¨⍤ˋ‿⋄←")
+             "ncoO+-mM=><pdtSejislrR1234 ;[@"
+             "∅∘⫦⊪×÷↧↥≠≥≤□↓↑Ρ⊂⌢ιρ⧻△▽ˊ¨⍤ˋ‿⋄←⎕")
   "Sable keymap"
   :type '(alist :key-type character :value-type character))
 
@@ -99,6 +99,7 @@
   `((,(rx "'" nonl) . 'font-lock-string-face)
     (,(rx "#" (* (any "0-9a-fA-F"))) . 'sable-number-face)
     (,(rx "@" (* (any "0-9a-zA-Z_"))) . 'sable-builtin-face)
+    (,(rx "⎕" (* (any "0-9a-zA-Z_"))) . 'sable-builtin-face)
 
     (,(rx (group symbol-start (any "A-Za-z_") (* (any "A-Za-z0-9_")))
           (* (any " \t")) "←")

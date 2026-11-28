@@ -167,7 +167,7 @@ pub const Lexer = struct {
                     t.kind = .symbol;
                     continue :state .symbol;
                 },
-                '@' => {
+                '@', '⎕' => {
                     lex.incr();
                     t.kind = .builtin;
                     continue :state .symbol;

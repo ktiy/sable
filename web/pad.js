@@ -13,8 +13,8 @@ function insert(g) {
   source.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-let glyphs = Array.from("∅∘.,~⫦⊪+-×÷*|↧↥¬=≠>≥<≤□↓↑Ρ/⊂⌢ιρ⧻△▽ˊ¨⍤ˋ‿⋄←%");
-let keys   = Array.from("nc   oO  +-  mM  = > <pdtS ejislrR1234_;[ ")
+let glyphs = Array.from("∅∘.,~⫦⊪+-×÷*|↧↥¬=≠>≥<≤□↓↑Ρ/⊂⌢ιρ⧻△▽ˊ¨⍤ˋ‿⋄←%⎕");
+let keys   = Array.from("nc   oO  +-  mM  = > <pdtS ejislrR1234_;[ @")
   .map((k,i) => k==' '?null:k=='_'?' ':k);
 
 const keymap = Object.fromEntries(
