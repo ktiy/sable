@@ -118,6 +118,7 @@ fn resolve(x: *Self, idx: Node.Index) E!StackEffect {
         .scope => try x.scope(idx, node),
         .sequence => try x.compose(node.lhs, node.rhs),
         .array => try x.array(node),
+        .guard => try x.guard(idx, node),
         .modifier => unreachable,
     };
     x.sigs[idx] = eff;
@@ -246,6 +247,43 @@ fn array(x: *Self, node: Node) E!StackEffect {
     return StackEffect.nilad;
 }
 
+fn guard(x: *Self, idx: Node.Index, node: Node) E!StackEffect {
+    const dat = x.ast.extra[node.lhs..node.rhs];
+    const cond = try x.resolve(dat[0]);
+    const first_slot = x.env.next_slot;
+
+    try x.env.push(x.gpa);
+    const t = try x.resolve(dat[1]);
+    _ = x.env.pop();
+
+    try x.env.push(x.gpa);
+    const e = try x.resolve(dat[2]);
+    _ = x.env.pop();
+
+    x.res[idx] = .{ .scope = .{ .i = first_slot, .j = x.env.next_slot } };
+
+    if (cond.out != 1) {
+        try x.err(.bad_condition, x.ast.tree.items(.token)[dat[0]]);
+    }
+
+    if (!t.diverge and !e.diverge and t.delta() != e.delta()) {
+        try x.err(.branch_mismatch, node.token);
+    }
+
+    const head = StackEffect.init(cond.in, cond.in);
+    const live = if (t.diverge and !e.diverge) e else t;
+
+    const in = @max(t.in, e.in);
+    const out: usize = @intCast(@as(isize, @intCast(in)) + live.delta());
+    const arms: StackEffect = .{
+        .in = in,
+        .out = out,
+        .diverge = t.diverge and e.diverge,
+    };
+
+    return head.then(arms);
+}
+
 fn primitive_effect(kind: Token.Kind) ?StackEffect {
     return switch (kind) {
         .id => StackEffect.init(1, 1),
@@ -364,7 +402,12 @@ test "binding to multiple values" {
 }
 
 test "sanity nilad" {
-    try check("avg ← .+´~⧻÷\n10‿20‿30‿40 avg", StackEffect.nilad, 0);
+    try check("avg ← .+ˊ~⧻÷\n10‿20‿30‿40 avg", StackEffect.nilad, 0);
+}
+
+test "guard" {
+    try check("1 ? 2 ; 3", StackEffect.nilad, 0);
+    try check("{1 ? 2 ; 3 4}", StackEffect.nilad, 1);
 }
 
 const Analysis = @This();

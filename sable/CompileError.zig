@@ -3,8 +3,10 @@ pos: SourceFile.Span,
 
 pub const Kind = enum {
     nyi,
+    bad_condition,
     bad_modifier_operand,
     bad_strand_element,
+    branch_mismatch,
     expected_array_close,
     expected_brace_close,
     expected_paren_close,
@@ -19,8 +21,10 @@ pub const Kind = enum {
     pub fn message(kind: Kind) []const u8 {
         return switch (kind) {
             .nyi => "nyi",
+            .bad_condition => "bad condition",
             .bad_modifier_operand => "bad modifier operand",
             .bad_strand_element => "bad strand element",
+            .branch_mismatch => "branch arity mismatch",
             .expected_array_close => "expected `]`",
             .expected_brace_close => "expected `}`",
             .expected_paren_close => "expected `)`",

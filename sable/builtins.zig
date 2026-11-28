@@ -32,7 +32,7 @@ pub fn stack_effect(b: Builtin) Stack_Effect {
         .frc => .init(1, 1),
         .frb => .init(1, 1),
         .debug_array => .init(1, 1),
-        .q => .init(0, 0),
+        .q => .{ .in = 0, .out = 0, .diverge = true },
     };
 }
 

@@ -5,6 +5,7 @@ ast: sbl.Syntax,
 ts: sbl.Token.Slice,
 st: *sbl.SymTable,
 res: []const sbl.Analysis.Res,
+sigs: []const sbl.bc.StackEffect,
 env: *Env,
 
 lam_base: usize,
@@ -48,6 +49,7 @@ pub fn run(
         .ts = ts,
         .buf = buf,
         .st = st,
+        .sigs = sema.sigs,
         .res = sema.res,
         .env = env,
         .lam_base = lam_base,
@@ -119,6 +121,35 @@ fn expr(w: *Compiler, n: Node.Index) E!void {
                 try w.expr(m);
             }
             try w.emit(.{ .pop_into_arr = len }, n);
+        },
+
+        .guard => {
+            const bc = &w.code.bc.items;
+            const lhs = w.node(.lhs, n);
+            const rhs = w.node(.rhs, n);
+            const dat = w.ast.extra[lhs..rhs];
+            const cond, const t, const e = .{ dat[0], dat[1], dat[2] };
+
+            const cin = w.sigs[cond].in;
+            if (cin > 0) {
+                try w.emit(.{ .copy = @intCast(cin) }, cond);
+            }
+            try w.expr(cond);
+
+            const jf = bc.len;
+            try w.emit(.{ .jump_ifz = 0 }, cond);
+            try w.expr(t);
+
+            const j = bc.len;
+            try w.emit(.{ .jump = 0 }, n);
+
+            const ef = bc.len;
+            try w.expr(e);
+
+            const end = bc.len;
+
+            bc.*[jf] = .{ .jump_ifz = @intCast(ef - (jf + 1)) };
+            bc.*[j] = .{ .jump = @intCast(end - (j + 1)) };
         },
 
         .primitive => {
@@ -299,12 +330,12 @@ fn node_to_cell(w: *Compiler, comptime k: Node.Kind, n: Node.Index) E!?Cell {
             defer chars.deinit(w.gpa);
 
             const last = w.node(.token_end, n);
-            var first_line = true;
+            var first = true;
             var tok = t;
             while (tok <= last) : (tok += 1) {
                 if (w.kind(tok) != .string_line) continue;
-                if (!first_line) try chars.append(w.gpa, '\n');
-                first_line = false;
+                if (!first) try chars.append(w.gpa, '\n');
+                first = false;
 
                 var line = w.str(tok)[1..];
                 if (line.len > 0 and line[0] == ' ')

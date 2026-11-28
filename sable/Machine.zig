@@ -136,6 +136,33 @@ pub fn step(m: *Machine) bool {
             mod(m, lam);
             return m.e.kind == .none;
         },
+        .copy => |n| {
+            const p: usize = @intCast(m.dat_p);
+            std.debug.assert(p >= n);
+            if (p + n > dat_stack_size) {
+                m.throw(.oom);
+                return false;
+            }
+            for (0..n) |i| {
+                const c = m.dat[p - n + i];
+                c.retain();
+                m.push(c);
+            }
+        },
+        .jump => |off| m.ip += off,
+        .jump_ifz => |off| {
+            const c = m.pop();
+            const zero = switch (c.k) {
+                inline .num, .byte, .char => |k| c.into(k) == 0,
+                .none => true,
+                .array => {
+                    c.release(m.gpa);
+                    m.throw(.type);
+                    return false;
+                },
+            };
+            if (zero) m.ip += off;
+        },
         .pop_into_sym => |i| {
             const val = m.pop();
             const slot = m.slot_ptr(i) catch {

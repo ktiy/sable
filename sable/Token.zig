@@ -22,6 +22,7 @@ pub const Kind = enum(u8) {
     paren_open,
     paren_close,
     left_arrow,
+    guard,
     semicolon,
     strand,
 
@@ -188,6 +189,7 @@ pub const Lexer = struct {
                     continue :state .char_start;
                 },
                 ';', '⋄' => t.kind = lex.atom(.semicolon),
+                '?', '⊢' => t.kind = lex.atom(.guard),
                 'λ' => t.kind = lex.atom(.lambda),
                 '∅' => t.kind = lex.atom(.none),
                 '∘' => t.kind = lex.atom(.id),

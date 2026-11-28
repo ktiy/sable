@@ -56,6 +56,7 @@ pub const Node = struct {
 
         // lhs: extra start, rhs: extra end
         array,
+        guard,
         scope,
         sequence,
     };
@@ -146,7 +147,7 @@ const Parser = struct {
             const sym_idx = try p.push(.init(.symbol, sym_tok));
             _ = p.incr();
 
-            const rhs = (try p.parse_train()) orelse {
+            const rhs = (try p.parse_expr()) orelse {
                 try p.push_err(.expected_expression, p.pos);
                 return .node(.assign, sym_tok, p.pos, sym_idx, undefined);
             };
@@ -155,7 +156,39 @@ const Parser = struct {
             return .node(.assign, sym_tok, p.pos, sym_idx, rhs_idx);
         }
 
-        return p.parse_train();
+        return p.parse_expr();
+    }
+
+    fn parse_expr(p: *Parser) Error!?Node {
+        const start_tok = p.pos;
+        const head = (try p.parse_train()) orelse return null;
+        if (p.kind() != .guard) return head;
+        return try p.parse_guard(start_tok, head);
+    }
+
+    fn parse_guard(p: *Parser, start_tok: Token.Index, cond: Node) Error!?Node {
+        _ = p.incr();
+        p.skip_ws();
+
+        const n_then = (try p.parse_train()) orelse p.empty_seq();
+        var n_else: Node = undefined;
+        if (p.kind() == .semicolon) {
+            _ = p.incr();
+            p.skip_ws();
+            n_else = (try p.parse_expr()) orelse p.empty_seq();
+        } else {
+            n_else = p.empty_seq();
+        }
+
+        const i_cond = try p.push(cond);
+        const i_then = try p.push(n_then);
+        const i_else = try p.push(n_else);
+
+        const extra_start: u32 = @intCast(p.extra.items.len);
+        try p.extra.appendSlice(p.gpa, &.{ i_cond, i_then, i_else });
+        const extra_end: u32 = @intCast(p.extra.items.len);
+
+        return .node(.guard, start_tok, p.pos - 1, extra_start, extra_end);
     }
 
     fn parse_train(p: *Parser) Error!?Node {
@@ -235,7 +268,7 @@ const Parser = struct {
 
     fn parse_paren(p: *Parser) Error!?Node {
         const open = p.incr();
-        const inner = try p.parse_train();
+        const inner = try p.parse_expr();
 
         const extra_start: u32 = @intCast(p.extra.items.len);
         if (inner) |n| try p.extra.append(p.gpa, try p.push(n));
@@ -324,6 +357,10 @@ const Parser = struct {
         while (p.kind() == .semicolon or p.kind() == .newline or p.kind() == .comment_line) p.pos += 1;
     }
 
+    fn skip_ws(p: *Parser) void {
+        while (p.kind() == .newline or p.kind() == .comment_line) p.pos += 1;
+    }
+
     fn skip_trivia(p: *Parser) void {
         while (p.pos < p.tokens.len) : (p.pos += 1) {
             switch (p.tokens.items(.kind)[p.pos]) {
@@ -350,6 +387,11 @@ const Parser = struct {
             }
         }
         return .eof;
+    }
+
+    fn empty_seq(p: *Parser) Node {
+        const e: u32 = @intCast(p.extra.items.len);
+        return .node(.sequence, p.pos, p.pos, e, e);
     }
 
     fn src(p: *Parser) Span {
@@ -402,7 +444,7 @@ const report = struct {
                 try write_node(w, ast, tokens, buf, node.lhs, child_prefix, false, false);
                 try write_node(w, ast, tokens, buf, node.rhs, child_prefix, true, false);
             },
-            .array, .scope, .sequence => {
+            .array, .guard, .scope, .sequence => {
                 const children = ast.extra[node.lhs..node.rhs];
                 try w.print(" [{d}]\n", .{children.len});
                 var prefix_buf: [512]u8 = undefined;

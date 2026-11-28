@@ -27,6 +27,9 @@ pub const Inst = union(enum) {
     call_prim: Token.Kind,
     call_lam: usize,
     call_lam_mod: struct { lam: u32, mod: Token.Kind },
+    copy: u32,
+    jump: u32,
+    jump_ifz: u32,
     pop_into_sym: u32,
     pop_into_arr: u32,
     clear_syms: struct { i: u32, j: u32 },
@@ -41,6 +44,9 @@ pub const Inst = union(enum) {
             .call_prim => |x| try w.print("CALL {}", .{x}),
             .call_lam => |x| try w.print("CALL (func #{x})", .{x}),
             .call_lam_mod => |x| try w.print("CALL {} (func #{x})", .{ x.mod, x.lam }),
+            .copy => |x| try w.print("COPY {d}", .{x}),
+            .jump => |x| try w.print("JMP +{d}", .{x}),
+            .jump_ifz => |x| try w.print("JMP IF ZERO +{d}", .{x}),
             .pop_into_sym => |x| try w.print("-> (sym #{x})", .{x}),
             .pop_into_arr => |x| try w.print("[{d} ->]", .{x}),
             .clear_syms => |x| try w.print("CLEAR (#{x}..#{x})", .{ x.i, x.j }),
@@ -52,6 +58,7 @@ pub const Inst = union(enum) {
 pub const StackEffect = struct {
     in: usize,
     out: usize,
+    diverge: bool = false,
 
     pub fn init(in: usize, out: usize) StackEffect {
         return .{ .in = in, .out = out };
@@ -70,7 +77,11 @@ pub const StackEffect = struct {
     pub fn then(x: StackEffect, y: StackEffect) StackEffect {
         const xh = @min(x.out, y.in);
         const yn = y.in - xh;
-        return .init(x.in + yn, x.out - xh + y.out);
+        return .{
+            .in = x.in + yn,
+            .out = x.out - xh + y.out,
+            .diverge = x.diverge or y.diverge,
+        };
     }
 };
 
