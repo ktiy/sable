@@ -61,7 +61,7 @@
   :group 'sable)
 
 (defconst sable--stack-prims
-  (list ?. ?, ?~ ?⫦ ?⊪))
+  (list ?∘ ?. ?, ?~ ?⫦ ?⊪))
 
 (defconst sable--monadic-prims
   (list ?ι ?ρ ?⧻ ?△ ?▽ ?↧ ?↥))
