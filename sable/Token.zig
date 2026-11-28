@@ -90,8 +90,18 @@ pub const Lexer = struct {
     cache: ?struct { u21, u3 } = null,
 
     pub fn init(content: [:0]const u8, pos: u32) Lexer {
+        var buf = content;
+        if (std.mem.startsWith(u8, buf, "\xef\xbb\xbf")) {
+            buf = buf[3..];
+        }
+
+        if (std.mem.startsWith(u8, buf, "#!")) {
+            const i = std.mem.find(u8, buf, "\n") orelse content.len - 1;
+            buf = buf[i..];
+        }
+
         return .{
-            .buf = content,
+            .buf = buf,
             .pos = pos,
         };
     }
